@@ -1,22 +1,43 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useChat } from '@ai-sdk/react'
+import { useChat, type Message as VercelMessage } from '@ai-sdk/react'
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Send, Scale,  Wand2, Gavel, Play } from "lucide-react";
+import { Scale, Wand2, Gavel } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Message } from "@/components/message";
 import { ThreeDotLoader } from "@/components/ThreeDotLoader";
 import { Button } from "@/components/ui/button";
+import { WorkflowTimeline } from "@/components/workflow-timeline";
+
+// Define the expected shape of the data stream messages
+interface WorkflowData {
+  workflowSteps?: string[];
+  currentStep?: number;
+  isComplete?: boolean;
+}
 
 export default function Home() {
   // State to track current mode
   const [chatMode, setChatMode] = useState<"default" | "workflow">("default");
+  
+  // State for workflow steps - initialize with defaults
+  const [workflowSteps, setWorkflowSteps] = useState<string[]>([]);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [workflowComplete, setWorkflowComplete] = useState(false);
 
-  // This hook will handle the API communications with modified messages
-  const { messages: apiMessages, input, handleInputChange, status, append: appendToApi, setInput, setMessages } =
-    useChat({
+  // This hook will handle the API communications
+  const { 
+    messages: apiMessages, 
+    input, 
+    handleInputChange, 
+    status, 
+    append: appendToApi, 
+    setInput, 
+    setMessages, 
+    data // Access the data stream directly
+  } = useChat({
       body: {
         mode: chatMode
       },
@@ -24,7 +45,24 @@ export default function Home() {
         toast.error("You've been rate limited, please try again later!"),
     });
 
-  // State for display messages (without "test")
+  // Process the data stream for workflow updates
+  useEffect(() => {
+    if (chatMode === 'workflow' && data && data.length > 0) {
+      // Process the most recent data message
+      const lastData = data[data.length - 1] as WorkflowData;
+      if (lastData.workflowSteps) {
+        setWorkflowSteps(lastData.workflowSteps);
+      }
+      if (typeof lastData.currentStep === 'number') {
+        setCurrentStep(lastData.currentStep);
+      }
+      if (typeof lastData.isComplete === 'boolean') {
+        setWorkflowComplete(lastData.isComplete);
+      }
+    }
+  }, [data, chatMode]); // Depend on the data stream and chatMode
+
+  // State for display messages
   const [displayMessages, setDisplayMessages] = useState<Array<{id: string; content: string; role: 'user' | 'assistant'}>>([]);
   
   // State for editing message
@@ -40,16 +78,23 @@ export default function Home() {
 
   // Toggle between chat modes
   const toggleChatMode = () => {
-    setChatMode(currentMode => currentMode === "default" ? "workflow" : "default");
+    setChatMode(currentMode => {
+      const newMode = currentMode === "default" ? "workflow" : "default";
+      // Reset workflow state when switching modes
+      if (newMode === "default") {
+        setWorkflowSteps([]);
+        setCurrentStep(0);
+        setWorkflowComplete(false);
+      }
+      return newMode;
+    });
   };
 
-  // Update display messages when API messages change (for assistant responses)
+  // Update display messages when API messages change
   useEffect(() => {
-    // Check for new or updated assistant messages
     const lastApiMessage = apiMessages[apiMessages.length - 1];
     
     if (apiMessages.length > 0 && lastApiMessage?.role === 'assistant') {
-      // Find if we already have this message in our display
       const existingMessageIndex = displayMessages.findIndex(m => m.id === lastApiMessage.id);
       
       if (existingMessageIndex >= 0) {
@@ -75,7 +120,17 @@ export default function Home() {
         ]);
       }
     }
-  }, [apiMessages, displayMessages]);
+    // Only depend on apiMessages for display updates
+  }, [apiMessages]); 
+
+  // Reset workflow state when starting a new submission in workflow mode
+  useEffect(() => {
+    if (status === 'submitted' && chatMode === "workflow") {
+      setWorkflowSteps([]); // Clear steps for new request
+      setCurrentStep(0);
+      setWorkflowComplete(false);
+    }
+  }, [status, chatMode]);
 
   useEffect(() => {
     scrollToBottom();
@@ -84,6 +139,13 @@ export default function Home() {
   const handleCustomSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (input.trim()) {
+      // Reset workflow state before submitting
+      if (chatMode === 'workflow') {
+         setWorkflowSteps([]);
+         setCurrentStep(0);
+         setWorkflowComplete(false);
+      }
+
       if (editingMessageId) {
         // Find the index of the message being edited
         const messageIndex = displayMessages.findIndex(msg => msg.id === editingMessageId);
@@ -98,7 +160,8 @@ export default function Home() {
           setDisplayMessages(updatedDisplayMessages);
           
           // Clear all API messages to avoid duplicates
-          setMessages([]);
+          // Pass an empty array to setMessages
+          setMessages([] as VercelMessage[]); 
         }
         
         // Pseudonymize and send the edited message to the API
@@ -138,7 +201,7 @@ export default function Home() {
           console.log("data-----", data);
           return data.message;
         });
-        // Send message with "test" appended to the API
+        // Send message to the API
         appendToApi({
           role: 'user',
           content: `${pseudonimizedMessage}`,
@@ -180,22 +243,40 @@ export default function Home() {
     }
   };
 
+  // Determine if the loading indicator should show
+  const isLoading = status === 'streaming' || (status === 'submitted' && chatMode === 'workflow');
+
   return (
     <div className="flex flex-row justify-center h-[calc(100vh-56px)]">
       <div className="flex flex-col justify-between gap-4 w-full max-w-2xl">
-        {displayMessages.length > 0 ? (
-          <div className="flex flex-col gap-2 h-full overflow-y-auto px-4">
-            {displayMessages.map((message, index) => (
-              <Message 
-                key={message.id} 
-                message={message} 
-                index={index} 
-                onEdit={handleEditMessage}
-              />
-            ))}
+        {displayMessages.length > 0 || (isLoading && chatMode === 'workflow') ? (
+          <div className="flex flex-col gap-2 h-full overflow-y-auto px-4 pt-4">
+            {displayMessages.map((message, index) => {
+              // Check if this is the last message and an assistant message during an active workflow
+              const isLastMessage = index === displayMessages.length - 1;
+              const showWorkflow = chatMode === "workflow" && 
+                                   message.role === 'assistant' && 
+                                   (isLoading || workflowComplete) && 
+                                   workflowSteps.length > 0 &&
+                                   isLastMessage;
+                                   
+              return (
+                <Message 
+                  key={message.id} 
+                  message={message} 
+                  index={index} 
+                  onEdit={handleEditMessage}
+                  workflow={showWorkflow ? {
+                    steps: workflowSteps,
+                    currentStep: currentStep,
+                    isComplete: workflowComplete
+                  } : null}
+                />
+              );
+            })}
 
-            {status !== "ready" &&
-              displayMessages[displayMessages.length - 1]?.role !== "assistant" && (
+            {/* Loading indicator for assistant response (non-workflow or before workflow starts) */}
+            {isLoading && displayMessages[displayMessages.length - 1]?.role !== "assistant" && chatMode === 'default' && (
                 <div className="flex flex-row gap-2">
                   <div className="size-[24px] flex flex-col justify-center items-center flex-shrink-0 text-zinc-400">
                     <Scale />
@@ -206,7 +287,20 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-              )}
+            )}
+             {/* Placeholder for workflow loading if no messages exist yet */}
+             {isLoading && chatMode === 'workflow' && displayMessages.length === 0 && workflowSteps.length > 0 && (
+                <Message 
+                  key="workflow-loader" 
+                  message={{id: "workflow-loader", content: "", role: 'assistant'}} 
+                  index={0} 
+                  workflow={{
+                    steps: workflowSteps,
+                    currentStep: currentStep,
+                    isComplete: workflowComplete
+                  }}
+                />
+             )}
 
             <div ref={messagesEndRef} />
           </div>
@@ -255,6 +349,7 @@ export default function Home() {
               type="submit"
               className="focus:outline-none ml-2 flex-shrink-0"
               aria-label="Send Message"
+              disabled={status === 'submitted'} // Disable while submitting
             >
               <span className="w-5 h-5">
                 <Gavel size={20} />

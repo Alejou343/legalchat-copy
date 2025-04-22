@@ -25,10 +25,13 @@ export async function POST(req: Request) {
     pseudonimized message: "Hello, my name is <person> and I live in <location>. My phone number is <identity> and my email is <identity>. I work at <organization> and my document is <identity>."
     for example: "give me three financial advice"
     pseudonimized message: "give me three financial advice"
+    for example: "I need to do the following steps: 1. upload the image 2. upload the document 3. upload the video"
+    pseudonimized message: "I need to do the following steps: 1. upload the image 2. upload the document 3. upload the video"
     IMPORTANT:
     - If there isnt any entity to pseudonimize, return the exact same message.
     - Do not answer anything else than the pseudonimized message.
     - Do not answer questions or give advice, just pseudonimize the message.
+    - Do not change the message if it does not contain any entity to pseudonimize.
     `,
     prompt: message,
   });

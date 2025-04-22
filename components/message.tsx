@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Markdown } from "@/components/markdown";
 import { useState } from "react";
 import { toast } from "sonner";
+import { WorkflowTimeline } from "./workflow-timeline";
 
 interface MessageProps {
   message: {
@@ -12,9 +13,14 @@ interface MessageProps {
   };
   index: number;
   onEdit?: (id: string) => void;
+  workflow?: {
+    steps: string[];
+    currentStep: number;
+    isComplete: boolean;
+  } | null;
 }
 
-export const Message = ({ message, index, onEdit }: MessageProps) => {
+export const Message = ({ message, index, onEdit, workflow }: MessageProps) => {
   const isUser = message.role === 'user';
   const [showActions, setShowActions] = useState(false);
   
@@ -49,6 +55,13 @@ export const Message = ({ message, index, onEdit }: MessageProps) => {
       )}
 
       <div className="flex flex-col gap-1 relative">
+        {!isUser && workflow && (
+          <WorkflowTimeline 
+            steps={workflow.steps}
+            currentStep={workflow.currentStep}
+            isComplete={workflow.isComplete}
+          />
+        )}
         <div className="flex flex-col gap-4">
           <Markdown>{message.content}</Markdown>
         </div>
