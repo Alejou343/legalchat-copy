@@ -3,18 +3,23 @@
 
 import { useChat } from '@ai-sdk/react'
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Markdown } from "@/components/markdown";
-import { Send, Scale, User } from "lucide-react";
+import { Send, Scale,  Wand2, Gavel, Play } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Message } from "@/components/message";
 import { ThreeDotLoader } from "@/components/ThreeDotLoader";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
+  // State to track current mode
+  const [chatMode, setChatMode] = useState<"default" | "workflow">("default");
+
   // This hook will handle the API communications with modified messages
   const { messages: apiMessages, input, handleInputChange, status, append: appendToApi, setInput, setMessages } =
     useChat({
+      body: {
+        mode: chatMode
+      },
       onError: () =>
         toast.error("You've been rate limited, please try again later!"),
     });
@@ -24,7 +29,6 @@ export default function Home() {
   
   // State for editing message
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const [editingMessageContent, setEditingMessageContent] = useState("");
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -32,6 +36,11 @@ export default function Home() {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // Toggle between chat modes
+  const toggleChatMode = () => {
+    setChatMode(currentMode => currentMode === "default" ? "workflow" : "default");
   };
 
   // Update display messages when API messages change (for assistant responses)
@@ -216,6 +225,18 @@ export default function Home() {
           onSubmit={handleCustomSubmit}
         >
           <div className="flex items-center w-full bg-muted rounded-md px-4 py-2">
+            {/* Workflow Mode Button */}
+            <Button
+              type="button"
+              variant={chatMode === "workflow" ? "default" : "outline"}
+              size="sm"
+              className="mr-2 flex-shrink-0"
+              onClick={toggleChatMode}
+            >
+              <Wand2 className="size-4" />
+              Workflow
+            </Button>
+            
             {/* Message Input with ScrollArea */}
             <ScrollArea className="w-full max-h-[200px]">
               <textarea
@@ -236,7 +257,7 @@ export default function Home() {
               aria-label="Send Message"
             >
               <span className="w-5 h-5">
-                <Send size={20} />
+                <Gavel size={20} />
               </span>
             </button>
           </div>
