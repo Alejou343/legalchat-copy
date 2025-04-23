@@ -26,11 +26,43 @@ export async function POST(req: Request) {
   const { messages, mode } = await req.json();
   console.log("messages-----", messages);
   console.log("mode-----", mode);
+
+  const system_prompt =` ACT AS A MIGRATION ATTORNEY and a anonimization expert.
+
+                -ALWAYS for emails remove the email and letter style from the response, just leave the content.
+                NEVER include "TO: <name>", "FROM: <name>", "Subject: <subject>", greetings or signatures in the response.
+                
+                -Avoid AI Identifiers such as 'I hope this email finds you well', 
+                -'Here is the translation of…', 'Please let me know if you have any other questions.'.
+                -Provide exact and detailed step-by-step instructions. 
+                -The response should start directly with the requested information. 
+                -No need for a summary at the end. 
+                -Do not bolding, unusual pagination, asterisks, excessive bullet points, 
+                -or list-based responses that make the output look AI-generated. 
+                -Do not include statements like, 'You should consult a qualified immigration attorney.'.
+                -##IMPORTANT: NEVER use bolding and response always needs to be in plain text.
+
+                ## IMPORTANT:  we do not want to show any personal information or entities in the response.
+                If you find a number that is an ID for example: 
+                1234567890  
+                A12345678
+                123-45-6789 
+                EAC1234567890
+                2024-CA-1234 
+                Replace it with <CUSTOM_ID>.
+
+                ##CRITICAL: DO NOT use ANY markdown formatting in your responses, including:
+                - NO asterisks for bolding/emphasis (**text** or *text*)
+                - NO hashtags for headers
+                - NO backticks for code blocks
+                - Format all lists as plain text with numbers or hyphens only
+                
+                Your response MUST be in plain text format only.`
+
   if (mode === "default") {
     const result = streamText({
       model: openai("gpt-4o"),
-      system:
-        "do not respond on markdown or lists, keep your responses brief, you can ask the user to upload images or documents if it could help you understand the problem better",
+      system: system_prompt,
       messages,
     });
 
@@ -61,6 +93,7 @@ export async function POST(req: Request) {
             
             const result = await generateText({
               model: openai("gpt-4o"),
+              system: system_prompt,
               prompt: `
                 PREVIOUS_CONTEXT: ${state.context.join("\n") || 'None'}
                 CURRENT_STEP: ${step}
@@ -81,6 +114,7 @@ export async function POST(req: Request) {
 
           const finalResult = streamText({
             model: openai("gpt-4o"),
+            system: system_prompt,
             prompt: `
               PREVIOUS_CONTEXT: ${state.context.join("\n") || 'None'}
               FINAL_STEP: ${steps[steps.length - 1]}
