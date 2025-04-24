@@ -6,8 +6,8 @@ import { ThemeProvider } from "@/components/theme-provider"
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'My App',
-  description: 'My Next.js App with Supabase Auth',
+  title: 'Alcock Chat',
+  description: 'Legal chat application by Alcock',
 }
 
 export default function RootLayout({
