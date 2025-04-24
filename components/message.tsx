@@ -54,7 +54,7 @@ export const Message = ({ message, index, onEdit, workflow }: MessageProps) => {
         </div>
       )}
 
-      <div className="flex flex-col gap-1 relative">
+      <div className="flex flex-col gap-1 relative max-w-full overflow-hidden">
         {!isUser && workflow && (
           <WorkflowTimeline 
             steps={workflow.steps}
@@ -62,7 +62,7 @@ export const Message = ({ message, index, onEdit, workflow }: MessageProps) => {
             isComplete={workflow.isComplete}
           />
         )}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 max-w-full overflow-hidden">
           <Markdown>{message.content}</Markdown>
         </div>
         

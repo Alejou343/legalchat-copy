@@ -20,13 +20,17 @@ export async function POST(req: Request) {
     - <location>
     - <organization>
     - <identity>
-    for example:
+    for example if the message is:
+    EXAMPLE 1:
     original message: "Hello, my name is John Doe and I live in New York City. My phone number is 1234567890 and my email is john.doe@example.com. I work at Google and my document is 1234567890."
     pseudonimized message: "Hello, my name is <person> and I live in <location>. My phone number is <identity> and my email is <identity>. I work at <organization> and my document is <identity>."
-    for example: "give me three financial advice"
+    EXAMPLE 2:
+    original message: "give me three financial advice"
     pseudonimized message: "give me three financial advice"
-    for example: "I need to do the following steps: 1. upload the image 2. upload the document 3. upload the video"
-    pseudonimized message: "I need to do the following steps: 1. upload the image 2. upload the document 3. upload the video"
+    EXAMPLE 3:
+    if there is not any entity to pseudonimize, return the exact same message like the following example:
+    original message: "1. upload the image 2. upload the document 3. upload the video"
+    pseudonimized message: "1. upload the image 2. upload the document 3. upload the video"
     IMPORTANT:
     - If there isnt any entity to pseudonimize, return the exact same message.
     - Do not answer anything else than the pseudonimized message.

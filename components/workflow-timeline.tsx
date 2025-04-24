@@ -27,12 +27,19 @@ export function WorkflowTimeline({ steps, currentStep, isComplete }: WorkflowTim
                   <Circle className="h-5 w-5 text-muted-foreground" />
                 )}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium truncate ${
-                  isActive ? 'text-primary' : isCompleted ? 'text-foreground' : 'text-muted-foreground'
-                }`}>
+              <div className="flex-1 overflow-hidden">
+                <div 
+                  className={`text-sm font-medium w-full pr-2 ${
+                    isActive ? 'text-primary' : isCompleted ? 'text-foreground' : 'text-muted-foreground'
+                  }`}
+                  style={{ 
+                    wordWrap: 'break-word', 
+                    overflowWrap: 'break-word',
+                    wordBreak: 'break-word'
+                  }}
+                >
                   {step}
-                </p>
+                </div>
                 {index < steps.length - 1 && (
                   <div className="ml-2.5 mt-1 mb-1 w-px h-3 bg-border" />
                 )}
