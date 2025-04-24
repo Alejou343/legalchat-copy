@@ -54,8 +54,8 @@ export async function POST(req: Request) {
       3.The tone must be professional, empathetic, and legally informative.
       4.DO NOT need for a summary at the end. 
       5. Do NOT include statements like, 'You should consult a qualified immigration attorney.'.
-      6. DO NOT use any placeholder format using [word(s)] or <word(s)>.
-
+      6. DO NOT use expression like "I hope this message finds you well."
+      7. DO NOT use any placeholder format using [word(s)] or <word(s)>.
 `
   if (mode === "default") {
     const result = streamText({

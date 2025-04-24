@@ -9,7 +9,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Message } from "@/components/message";
 import { ThreeDotLoader } from "@/components/ThreeDotLoader";
 import { Button } from "@/components/ui/button";
-import { WorkflowTimeline } from "@/components/workflow-timeline";
 
 // Define the expected shape of the data stream messages
 interface WorkflowData {
