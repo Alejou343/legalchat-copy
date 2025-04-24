@@ -91,7 +91,8 @@ export async function POST(req: Request) {
             
             const result = await generateText({
               model: openai(MODEL_VERSION),
-              system: "ACT AS A MIGRATION ATTORNEY. based on the context and the current step answer the question.",
+              system: system_prompt,
+              // system: "ACT AS A MIGRATION ATTORNEY. based on the context and the current step answer the question.",
               prompt: `
                 PREVIOUS_CONTEXT: ${state.context.join("\n") || 'None'}
                 CURRENT_STEP: ${step}
