@@ -41,48 +41,26 @@ export async function POST(req: Request) {
   console.log("messages-----", messages);
   console.log("mode-----", mode);
 
-  const system_prompt =` ACT AS A MIGRATION ATTORNEY and a anonimization expert.
+  const system_prompt = `ACT AS A MIGRATION ATTORNEY that answers questions and redacts emails, letters and documents.
+          
+      STYLE RULES:
+      1.DO NOT use any placeholder formats such as [Client's Name],[Your Law Firm's Letterhead],[Date],<Date>, or [Your Name]. These are strictly forbidden.
+      2.DO NOT INVENT NAMES OR EMAILS. Only use names, contact information, or any other identifying details if explicitly provided in the input context. If not provided, use generic but professional phrasing like:
 
-                -ALWAYS for emails remove the email and letter style from the response, just leave the content.
-                NEVER include "TO: <name>", "FROM: <name>", "Subject: <subject>", greetings or signatures in the response.
-                
-                -Avoid AI Identifiers such as 'I hope this email finds you well', 
-                -'Here is the translation of…', 'Please let me know if you have any other questions.'.
-                -Provide exact and detailed step-by-step instructions. 
-                -The response should start directly with the requested information. 
-                -No need for a summary at the end. 
-                -Do not bolding, unusual pagination, asterisks, excessive bullet points, 
-                -or list-based responses that make the output look AI-generated. 
-                -Do not include statements like, 'You should consult a qualified immigration attorney.'.
-                -##IMPORTANT: NEVER response with boiler plate text like for example this:
-                [Your Law Firm's Letterhead]
-                [Date]
-                [Client's Name]
-                [Client's Address]
-                [City, State, ZIP Code]
+      -"Dear Client,"
+      -"Best regards,
+      -Immigration Attorney"
 
-                ## IMPORTANT:  we do not want to show any personal information or entities in the response.
-                If you find a number that is an ID for example: 
-                1234567890  
-                A12345678
-                123-45-6789 
-                EAC1234567890
-                2024-CA-1234 
-                Replace it with <CUSTOM_ID>.
+      3.The tone must be professional, empathetic, and legally informative.
+      4.DO NOT need for a summary at the end. 
+      5. Do NOT include statements like, 'You should consult a qualified immigration attorney.'.
+      6. DO NOT use any placeholder format using [word(s)] or <word(s)>.
 
-                ##CRITICAL: DO NOT use ANY markdown formatting in your responses, including:
-                - NO asterisks for bolding/emphasis (**text** or *text*)
-                - NO hashtags for headers
-                - NO backticks for code blocks
-                - Format all lists as plain text with numbers or hyphens only
-                
-                Your response MUST be in plain text format only.`
-
+`
   if (mode === "default") {
     const result = streamText({
       model: openai(MODEL_VERSION),
-      system:
-        "do not respond on markdown or lists, keep your responses brief, you can ask the user to upload images or documents if it could help you understand the problem better",
+      system: system_prompt,
       messages,
     });
 
@@ -113,17 +91,15 @@ export async function POST(req: Request) {
             
             const result = await generateText({
               model: openai(MODEL_VERSION),
-              system: "ACT AS A MIGRATION ATTORNEY",
+              system: "ACT AS A MIGRATION ATTORNEY. based on the context and the current step answer the question.",
               prompt: `
                 PREVIOUS_CONTEXT: ${state.context.join("\n") || 'None'}
                 CURRENT_STEP: ${step}
-                Generate a concise internal thought or summary based ONLY on the CURRENT_STEP and PREVIOUS_CONTEXT.
-                if there is no PREVIOUS_CONTEXT, just return the answer for the current step.
               `,
             });
             
             state.context.push(result.text);
-            console.log("Step result:", result.text);
+            console.log("Step result:::::", result.text);
           }
 
           const lastStep = state.steps[state.steps.length - 1];
@@ -137,8 +113,8 @@ export async function POST(req: Request) {
             system: system_prompt,
             prompt: `
               PREVIOUS_CONTEXT: ${state.context.join("\n") || 'None'}
-              FINAL_STEP: ${steps[steps.length - 1]}
-              Generate the final answer for the user based on the PREVIOUS_CONTEXT and the FINAL_STEP.
+              CURRENT_STEP: ${lastStep}
+              Generate the final answer for the user based on the PREVIOUS_CONTEXT and the CURRENT_STEP.
             `,
             onFinish: () => {
               dataStream.writeData({ workflowSteps: steps, currentStep: state.currentStep, isComplete: true });
