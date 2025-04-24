@@ -136,6 +136,13 @@ export default function Home() {
     scrollToBottom();
   }, [displayMessages]);
 
+  // Reset textarea height when input is cleared
+  useEffect(() => {
+    if (input === '' && textareaRef.current) {
+      textareaRef.current.style.height = '24px';
+    }
+  }, [input]);
+
   const handleCustomSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (input.trim()) {
@@ -229,8 +236,13 @@ export default function Home() {
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     handleInputChange(e);
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+      if (e.target.value === '') {
+        // Reset to default height when empty
+        textareaRef.current.style.height = '24px';
+      } else {
+        textareaRef.current.style.height = 'auto';
+        textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+      }
     }
   };
 
@@ -247,8 +259,8 @@ export default function Home() {
   const isLoading = status === 'streaming' || (status === 'submitted' && chatMode === 'workflow');
 
   return (
-    <div className="flex flex-row justify-center h-[calc(100vh-56px)]">
-      <div className="flex flex-col justify-between gap-4 w-full max-w-2xl">
+    <div className="flex flex-row justify-center h-[calc(100vh-64px)]">
+      <div className="flex flex-col justify-between gap-4 w-full max-w-4xl">
         {displayMessages.length > 0 || (isLoading && chatMode === 'workflow') ? (
           <div className="flex flex-col gap-2 h-full overflow-y-auto px-4 pt-4">
             {displayMessages.map((message, index) => {

@@ -2,9 +2,11 @@ import { openai } from "@ai-sdk/openai";
 import { streamText, generateText, generateObject, createDataStreamResponse, DataStreamWriter } from "ai";
 import { z } from "zod";
 
+const MODEL_VERSION = "gpt-4o";
+
 async function parseSteps(input: string) {
   const { object } = await generateObject({
-    model: openai("gpt-4o"),
+    model: openai(MODEL_VERSION),
     schema: z.object({
       steps: z.array(z.string())
     }),
@@ -28,7 +30,7 @@ export async function POST(req: Request) {
   console.log("mode-----", mode);
   if (mode === "default") {
     const result = streamText({
-      model: openai("gpt-4o"),
+      model: openai(MODEL_VERSION),
       system:
         "do not respond on markdown or lists, keep your responses brief, you can ask the user to upload images or documents if it could help you understand the problem better",
       messages,
@@ -60,7 +62,7 @@ export async function POST(req: Request) {
             dataStream.writeData({ workflowSteps: steps, currentStep: i, isComplete: false });
             
             const result = await generateText({
-              model: openai("gpt-4o"),
+              model: openai(MODEL_VERSION),
               prompt: `
                 PREVIOUS_CONTEXT: ${state.context.join("\n") || 'None'}
                 CURRENT_STEP: ${step}
@@ -80,7 +82,7 @@ export async function POST(req: Request) {
           dataStream.writeData({ workflowSteps: steps, currentStep: state.currentStep, isComplete: false });
 
           const finalResult = streamText({
-            model: openai("gpt-4o"),
+            model: openai(MODEL_VERSION),
             prompt: `
               PREVIOUS_CONTEXT: ${state.context.join("\n") || 'None'}
               FINAL_STEP: ${steps[steps.length - 1]}
