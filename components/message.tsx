@@ -67,7 +67,7 @@ export const Message = ({ message, index, onEdit, workflow }: MessageProps) => {
         </div>
         
         {showActions && (
-          <div className={`absolute ${isUser ? "top-0 left-0 -translate-x-full -ml-2" : "-top-8 right-0"} bg-zinc-800 rounded-md shadow-md p-1 flex gap-2 z-[9999]`}>
+          <div className={`absolute ${isUser ? "top-0 left-0 -translate-x-full -ml-2" : "top-0 right-0"} bg-zinc-800 rounded-md shadow-md p-1 flex gap-2 z-[1000]`}>
             {!isUser && (
               <button 
                 onClick={copyToClipboard}

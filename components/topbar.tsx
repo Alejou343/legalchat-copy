@@ -19,7 +19,7 @@ export function Topbar() {
   
   return (
     <div className="flex items-center justify-between">
-      <div className="h-12 w-auto">
+      <div className="h-16 w-auto">
         {mounted ? (
           <Image
             src={logoSrc}

@@ -42,7 +42,12 @@ export async function POST(req: Request) {
                 -Do not bolding, unusual pagination, asterisks, excessive bullet points, 
                 -or list-based responses that make the output look AI-generated. 
                 -Do not include statements like, 'You should consult a qualified immigration attorney.'.
-                -##IMPORTANT: NEVER use bolding and response always needs to be in plain text.
+                -##IMPORTANT: NEVER response with boiler plate text like for example this:
+                [Your Law Firm's Letterhead]
+                [Date]
+                [Client's Name]
+                [Client's Address]
+                [City, State, ZIP Code]
 
                 ## IMPORTANT:  we do not want to show any personal information or entities in the response.
                 If you find a number that is an ID for example: 
@@ -96,6 +101,7 @@ export async function POST(req: Request) {
             
             const result = await generateText({
               model: openai(MODEL_VERSION),
+              system: system_prompt,
               prompt: `
                 PREVIOUS_CONTEXT: ${state.context.join("\n") || 'None'}
                 CURRENT_STEP: ${step}
@@ -116,6 +122,7 @@ export async function POST(req: Request) {
 
           const finalResult = streamText({
             model: openai(MODEL_VERSION),
+            system: system_prompt,
             prompt: `
               PREVIOUS_CONTEXT: ${state.context.join("\n") || 'None'}
               FINAL_STEP: ${steps[steps.length - 1]}

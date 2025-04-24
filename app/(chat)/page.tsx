@@ -259,7 +259,7 @@ export default function Home() {
   const isLoading = status === 'streaming' || (status === 'submitted' && chatMode === 'workflow');
 
   return (
-    <div className="flex flex-row justify-center h-[calc(100vh-64px)]">
+    <div className="flex flex-row justify-center h-[calc(100vh-100px)]">
       <div className="flex flex-col justify-between gap-4 w-full max-w-4xl">
         {displayMessages.length > 0 || (isLoading && chatMode === 'workflow') ? (
           <div className="flex flex-col gap-2 h-full overflow-y-auto px-4 pt-4">
@@ -321,13 +321,13 @@ export default function Home() {
             <Scale className="h-12 w-12" />
             <h1 className="text-xl font-medium">Welcome</h1>
             <p className="text-center text-muted-foreground">
-              This is a chatbot that can help you with your legal questions.
+              AI Legal chatbot by Alcock
             </p>
           </div>
         )}
 
         <form
-          className="flex flex-col gap-2 relative items-center px-4 py-2 border-t"
+          className="flex flex-col gap-2 relative items-center px-4 py-2 border-t mb-4"
           onSubmit={handleCustomSubmit}
         >
           <div className="flex items-center w-full bg-muted rounded-md px-4 py-2">
@@ -347,12 +347,12 @@ export default function Home() {
             <ScrollArea className="w-full max-h-[200px]">
               <textarea
                 ref={textareaRef}
-                className="bg-transparent flex-grow outline-none w-full resize-none overflow-hidden min-h-[24px]"
+                className="bg-transparent flex-grow outline-none w-full resize-none overflow-hidden min-h-[36px]"
                 placeholder={editingMessageId ? "Edit your message..." : "Send a message..."}
                 value={input}
                 onChange={handleTextareaChange}
                 onKeyDown={handleKeyDown}
-                rows={1}
+                rows={2}
               />
             </ScrollArea>
             
