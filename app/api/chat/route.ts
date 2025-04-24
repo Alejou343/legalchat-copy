@@ -111,6 +111,7 @@ export async function POST(req: Request) {
           const finalResult = streamText({
             model: openai(MODEL_VERSION),
             system: system_prompt,
+            temperature:0,
             prompt: `
               PREVIOUS_CONTEXT: ${state.context.join("\n") || 'None'}
               CURRENT_STEP: ${lastStep}
