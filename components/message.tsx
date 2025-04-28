@@ -4,13 +4,10 @@ import { Markdown } from "@/components/markdown";
 import { useState } from "react";
 import { toast } from "sonner";
 import { WorkflowTimeline } from "./workflow-timeline";
+import type { UIMessage } from "ai";
 
 interface MessageProps {
-  message: {
-    id: string;
-    content: string;
-    role: 'user' | 'assistant';
-  };
+  message: UIMessage;
   index: number;
   onEdit?: (id: string) => void;
   workflow?: {
@@ -70,6 +67,7 @@ export const Message = ({ message, index, onEdit, workflow }: MessageProps) => {
           <div className={`absolute ${isUser ? "top-0 left-0 -translate-x-full -ml-2" : "top-0 right-0"} bg-zinc-800 rounded-md shadow-md p-1 flex gap-2 z-[1000]`}>
             {!isUser && (
               <button 
+                type="button"
                 onClick={copyToClipboard}
                 className="p-1 hover:bg-zinc-700 rounded-md transition-colors"
                 title="Copy message"
@@ -79,6 +77,7 @@ export const Message = ({ message, index, onEdit, workflow }: MessageProps) => {
             )}
             {isUser && (
               <button 
+                type="button"
                 onClick={handleEdit}
                 className="p-1 hover:bg-zinc-700 rounded-md transition-colors"
                 title="Edit message"

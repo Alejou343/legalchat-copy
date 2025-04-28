@@ -22,9 +22,16 @@ export function LoginForm() {
     setError(null)
 
     try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error('Supabase credentials are not properly configured')
+      }
+
       const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        supabaseUrl,
+        supabaseAnonKey
       )
 
       const { error } = await supabase.auth.signInWithPassword({
@@ -39,6 +46,7 @@ export function LoginForm() {
       // Refresh the page to update the session
       router.refresh()
       router.push('/')
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     } catch (error: any) {
       setError(error.message || 'An error occurred during sign in')
     } finally {
