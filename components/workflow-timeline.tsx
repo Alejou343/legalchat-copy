@@ -17,7 +17,7 @@ export function WorkflowTimeline({ steps, currentStep, isComplete }: WorkflowTim
           const isCompleted = index < currentStep || isComplete;
           
           return (
-            <div key={index} className="flex items-start gap-3">
+            <div key={`dff-${index}`} className="flex items-start gap-3">
               <div className="flex-shrink-0 mt-0.5">
                 {isCompleted ? (
                   <CheckCircle className="h-5 w-5 text-primary" />
