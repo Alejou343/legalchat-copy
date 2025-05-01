@@ -2,7 +2,7 @@
 "use client";
 
 import { useChat, type Message as VercelMessage } from "@ai-sdk/react";
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Scale, Wand2, Gavel } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -33,9 +33,11 @@ export default function Home() {
 		}>
 	>([]);
 	const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+	const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const messagesEndRef = useRef<HTMLDivElement>(null);
+	const scrollAreaRef = useRef<HTMLDivElement>(null);
 
 	const {
 		messages: apiMessages, // Source of truth from the API/hook
@@ -77,16 +79,9 @@ export default function Home() {
 	});
 
 	// Derived state: Is the chat waiting for a response or streaming?
-	const isLoading = status === 'streaming' || (status === 'submitted' && chatMode === 'workflow');
-
-	// // Scroll to bottom when new messages are added or loading status changes
-	// const scrollToBottom = useCallback(() => {
-	// 	messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-	// }, []);
-
-	// useEffect(() => {
-	// 	scrollToBottom();
-	// }, [scrollToBottom]); // Trigger scroll on new messages or loading change
+	const isLoading =
+		status === "streaming" ||
+		(status === "submitted" && chatMode === "workflow");
 
 	// Auto-resize textarea
 	useEffect(() => {
@@ -100,13 +95,13 @@ export default function Home() {
 		}
 	}, []); // Adjust height when input changes
 
-	  // Toggle between chat modes
-    const toggleChatMode = () => {
-      setChatMode(currentMode => {
-        const newMode = currentMode === "default" ? "workflow" : "default";
-        return newMode;
-      });
-    };
+	// Toggle between chat modes
+	const toggleChatMode = () => {
+		setChatMode((currentMode) => {
+			const newMode = currentMode === "default" ? "workflow" : "default";
+			return newMode;
+		});
+	};
 
 	// Auto-resize textarea based on content
 	const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -221,9 +216,13 @@ export default function Home() {
 
 	// Update display messages when API messages change
 	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
-		useEffect(() => {
+	useEffect(() => {
 		const lastApiMessage = apiMessages[apiMessages.length - 1];
-		if (apiMessages.length > 0 && lastApiMessage?.role === "assistant" && chatMode === "workflow") {
+		if (
+			apiMessages.length > 0 &&
+			lastApiMessage?.role === "assistant" &&
+			chatMode === "workflow"
+		) {
 			const existingMessageIndex = displayMessages.findIndex(
 				(m) => m.id === lastApiMessage.id,
 			);
@@ -239,15 +238,15 @@ export default function Home() {
 						id: lastApiMessage.id,
 						content: lastApiMessage.content,
 						role: "assistant",
-						workflow: (data as WorkflowData), // Ensure workflow data is preserved
+						workflow: data as WorkflowData, // Ensure workflow data is preserved
 					};
 					setDisplayMessages(updatedMessages);
 				} else if (data) {
-          // Update workflow data if it exists
-          const updatedMessages = [...displayMessages];
-          updatedMessages[existingMessageIndex].workflow = data as WorkflowData;
-          setDisplayMessages(updatedMessages);
-        }
+					// Update workflow data if it exists
+					const updatedMessages = [...displayMessages];
+					updatedMessages[existingMessageIndex].workflow = data as WorkflowData;
+					setDisplayMessages(updatedMessages);
+				}
 			} else {
 				// Add new message
 				setDisplayMessages((current) => [
@@ -256,39 +255,45 @@ export default function Home() {
 						id: lastApiMessage.id,
 						content: lastApiMessage.content,
 						role: "assistant",
-						workflow: (data as WorkflowData), // Ensure workflow data is preserved
+						workflow: data as WorkflowData, // Ensure workflow data is preserved
 					},
 				]);
 			}
-		} else if (apiMessages.length > 0 && lastApiMessage?.role === "assistant" && chatMode === "default") {
-      // Add new message
-      setDisplayMessages((current) => [
-        ...current,
-        {
-          id: lastApiMessage.id,
-          content: lastApiMessage.content,
-          role: "assistant",
-          workflow: null, // No workflow data in default mode
-        },
-      ]);
-    }
+		} else if (
+			apiMessages.length > 0 &&
+			lastApiMessage?.role === "assistant" &&
+			chatMode === "default"
+		) {
+			// Add new message
+			setDisplayMessages((current) => [
+				...current,
+				{
+					id: lastApiMessage.id,
+					content: lastApiMessage.content,
+					role: "assistant",
+					workflow: null, // No workflow data in default mode
+				},
+			]);
+		}
 		// Only depend on apiMessages for display updates
-	// eslint-disable-next-line react-hooks/exhaustive-deps
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [apiMessages, data]);
 
-  useEffect(() => {
-	const lastDisplayMessage = displayMessages[displayMessages.length - 1];
-  const lastLastDisplayMessage = displayMessages[displayMessages.length - 2];
-  if (lastDisplayMessage?.role === "assistant" && lastLastDisplayMessage?.role === "assistant") {
-    // remove the message at the displayMessages.length - 2 position
-    setDisplayMessages((current) => {
-      const updatedMessages = [...current];
-      updatedMessages.splice(displayMessages.length - 2, 1);
-      return updatedMessages;
-    });
-  }
-
-  }, [displayMessages]);
+	useEffect(() => {
+		const lastDisplayMessage = displayMessages[displayMessages.length - 1];
+		const lastLastDisplayMessage = displayMessages[displayMessages.length - 2];
+		if (
+			lastDisplayMessage?.role === "assistant" &&
+			lastLastDisplayMessage?.role === "assistant"
+		) {
+			// remove the message at the displayMessages.length - 2 position
+			setDisplayMessages((current) => {
+				const updatedMessages = [...current];
+				updatedMessages.splice(displayMessages.length - 2, 1);
+				return updatedMessages;
+			});
+		}
+	}, [displayMessages]);
 
 	// Handle Enter key (submit) and Shift+Enter (new line)
 	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -311,18 +316,52 @@ export default function Home() {
 		}
 	};
 
+	useEffect(() => {
+		const handleScroll = () => {
+			if (scrollAreaRef.current) {
+				const { scrollTop, scrollHeight, clientHeight } = scrollAreaRef.current;
+				const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+				setShouldAutoScroll(isAtBottom);
+			}
+		};
+
+		const scrollArea = scrollAreaRef.current;
+		if (scrollArea) {
+			scrollArea.addEventListener("scroll", handleScroll);
+			return () => scrollArea.removeEventListener("scroll", handleScroll);
+		}
+	}, []);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+	useEffect(() => {
+		if (shouldAutoScroll) {
+			messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+		}
+	}, [displayMessages, isLoading, shouldAutoScroll]);
+
 	return (
 		<TooltipProvider delayDuration={100}>
 			<div className="flex flex-col justify-center items-center h-[calc(100vh-80px)] md:h-[calc(100vh-100px)] w-full">
 				{" "}
 				{/* Adjusted height */}
 				<div className="flex flex-col justify-between w-full max-w-4xl h-full bg-background rounded-lg shadow-xl border">
-					{/* Welcome Messages */}
-					{displayMessages.length === 0 &&
-							!isLoading && (<div className="flex flex-col gap-4 h-full items-center justify-center px-4">
-						{chatMode === "default" && (
-								<div className="flex flex-col gap-4 h-full items-center justify-center text-center">
-									<Scale className="h-12 w-12" />
+					{/* Welcome Messages with Smooth Transitions */}
+					{displayMessages.length === 0 && !isLoading && (
+							
+              <div className="relative h-full w-full">
+						{/* Default Mode Welcome */}
+						
+								{/* Animated container for smooth fade/slide */}
+								<div
+									className={cn(
+										"absolute inset-0 flex flex-col gap-4 items-center justify-center px-4 transition-all duration-500",
+										chatMode === "default"
+											? "opacity-100 translate-y-0 pointer-events-auto"
+											: "opacity-0 -translate-y-4 pointer-events-none",
+									)}
+									aria-hidden={chatMode !== "default"}
+								>
+									<Scale className="h-12 w-12 transition-colors duration-300" />
 									<h1 className="text-xl font-medium">Welcome</h1>
 									<p className="text-center text-muted-foreground">
 										AI Legal chatbot by Alcock
@@ -331,21 +370,32 @@ export default function Home() {
 										Ask a question or switch to Workflow Mode for guided tasks.
 									</p>
 								</div>
-							)}
-						{chatMode === "workflow" && (
-								<div className="flex flex-col gap-4 h-full items-center justify-center text-center">
-									<Wand2 className="h-12 w-12 text-muted-foreground" />
+								{/* Workflow Mode Welcome */}
+								<div
+									className={cn(
+										"absolute inset-0 flex flex-col gap-4 items-center justify-center px-4 text-center transition-all duration-500",
+										chatMode === "workflow"
+											? "opacity-100 translate-y-0 pointer-events-auto"
+											: "opacity-0 translate-y-4 pointer-events-none",
+									)}
+									aria-hidden={chatMode !== "workflow"}
+								>
+									<Wand2 className="h-12 w-12 text-muted-foreground transition-colors duration-300" />
 									<h1 className="text-xl font-medium">Workflow Mode</h1>
 									<p className="text-muted-foreground">
 										Describe the legal task you need assistance with. The AI
 										will guide you through the steps.
 									</p>
 								</div>
-							)}
-					</div>)}
+							
+					</div>
+						)}
 
-          {/* Message Display Area */}
-					<ScrollArea className="flex-grow p-4 overflow-y-auto">
+					{/* Message Display Area */}
+					<ScrollArea
+						ref={scrollAreaRef}
+						className="flex-grow p-4 overflow-y-auto"
+					>
 						{/* Render Messages */}
 						{displayMessages.map(
 							(message, index) =>
@@ -375,92 +425,93 @@ export default function Home() {
 
 						<div ref={messagesEndRef} />
 					</ScrollArea>
-
 					{/* Input Area */}
-          <form
-            className="flex flex-col gap-2 relative items-center px-4 py-3 border-t bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60"
-            onSubmit={handleCustomSubmit}
-          >
-            <div className="flex items-center w-full gap-2">
-              {/* Workflow Mode Toggle */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant={chatMode === "workflow" ? "default" : "ghost"}
-                    size="icon"
-                    className={cn(
-                      "transition-colors",
-                      chatMode === "workflow" && "bg-primary text-primary-foreground"
-                    )}
-                    onClick={toggleChatMode}
-                    disabled={isLoading}
-                    aria-label="Toggle Workflow Mode"
-                  >
-                    <Wand2 className="size-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  {chatMode === "workflow"
-                    ? "Workflow mode enabled"
-                    : "Switch to workflow mode"}
-                </TooltipContent>
-              </Tooltip>
+					<form
+						className="flex flex-col gap-2 relative items-center px-4 py-3 border-t bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+						onSubmit={handleCustomSubmit}
+					>
+						<div className="flex items-center w-full gap-2">
+							{/* Workflow Mode Toggle */}
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										type="button"
+										variant={chatMode === "workflow" ? "default" : "ghost"}
+										size="icon"
+										className={cn(
+											"transition-colors",
+											chatMode === "workflow" &&
+												"bg-primary text-primary-foreground",
+										)}
+										onClick={toggleChatMode}
+										disabled={isLoading}
+										aria-label="Toggle Workflow Mode"
+									>
+										<Wand2 className="size-5" />
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent side="top">
+									{chatMode === "workflow"
+										? "Workflow mode enabled"
+										: "Switch to workflow mode"}
+								</TooltipContent>
+							</Tooltip>
 
-              {/* Message Input */}
-              <div className="flex-grow relative">
-                <Textarea
-                  ref={textareaRef}
-                  className={cn(
-                    "w-full min-h-[40px] max-h-[200px] resize-none pr-10 text-base bg-muted/60 rounded-lg border-none shadow-inner focus:ring-2 focus:ring-primary/30 transition",
-                    editingMessageId && "ring-2 ring-primary/40"
-                  )}
-                  placeholder={
-                    editingMessageId
-                      ? "Edit your message..."
-                      : chatMode === "workflow"
-                      ? "Describe your legal task..."
-                      : "Type your message..."
-                  }
-                  value={input}
-                  onChange={handleTextareaChange}
-                  onKeyDown={handleKeyDown}
-                  rows={1}
-                  disabled={isLoading}
-                  autoFocus
-                />
-                {/* Send Button (floating inside input) */}
-                <button
-                  type="submit"
-                  className={cn(
-                    "absolute bottom-2 right-2 p-1 rounded-full bg-primary text-primary-foreground shadow transition-opacity",
-                    (isLoading || !input.trim()) && "opacity-50 pointer-events-none"
-                  )}
-                  aria-label="Send Message"
-                  disabled={isLoading || !input.trim()}
-                >
-                  <Gavel size={18} />
-                </button>
-              </div>
-            </div>
-            {editingMessageId && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground w-full px-1">
-                <span>Editing message...</span>
-                <Button
-                  type="button"
-                  variant="link"
-                  size="sm"
-                  className="px-0 h-auto text-primary"
-                  onClick={() => {
-                    setEditingMessageId(null);
-                    setInput("");
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            )}
-          </form>
+							{/* Message Input */}
+							<div className="flex-grow relative">
+								<Textarea
+									ref={textareaRef}
+									className={cn(
+										"w-full min-h-[40px] max-h-[200px] resize-none pr-10 text-base bg-muted/60 rounded-lg border-none shadow-inner focus:ring-2 focus:ring-primary/30 transition",
+										editingMessageId && "ring-2 ring-primary/40",
+									)}
+									placeholder={
+										editingMessageId
+											? "Edit your message..."
+											: chatMode === "workflow"
+												? "Describe your legal task..."
+												: "Type your message..."
+									}
+									value={input}
+									onChange={handleTextareaChange}
+									onKeyDown={handleKeyDown}
+									rows={1}
+									disabled={isLoading}
+									autoFocus
+								/>
+								{/* Send Button (floating inside input) */}
+								<button
+									type="submit"
+									className={cn(
+										"absolute bottom-2 right-2 p-1 rounded-full bg-primary text-primary-foreground shadow transition-opacity",
+										(isLoading || !input.trim()) &&
+											"opacity-50 pointer-events-none",
+									)}
+									aria-label="Send Message"
+									disabled={isLoading || !input.trim()}
+								>
+									<Gavel size={18} />
+								</button>
+							</div>
+						</div>
+						{editingMessageId && (
+							<div className="flex items-center gap-2 text-xs text-muted-foreground w-full px-1">
+								<span>Editing message...</span>
+								<Button
+									type="button"
+									variant="link"
+									size="sm"
+									className="px-0 h-auto text-primary"
+									onClick={() => {
+										setEditingMessageId(null);
+										setInput("");
+									}}
+								>
+									Cancel
+								</Button>
+							</div>
+						)}
+					</form>
 				</div>
 			</div>
 		</TooltipProvider>
