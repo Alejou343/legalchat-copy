@@ -1,5 +1,5 @@
 import { openai } from "@ai-sdk/openai";
-import { streamText, generateText, generateObject, createDataStreamResponse, DataStreamWriter } from "ai";
+import { streamText, generateText, generateObject, createDataStreamResponse, type DataStreamWriter } from "ai";
 import { z } from "zod";
 
 const MODEL_VERSION = "gpt-4o";
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
       7. DO NOT use any placeholder format using [word(s)] or <word(s)>.
 `
   if (mode === "default") {
-    const result = streamText({
+    const result = streamText({ 
       model: openai(MODEL_VERSION),
       system: system_prompt,
       messages,
@@ -66,7 +66,9 @@ export async function POST(req: Request) {
 
     return result.toDataStreamResponse();
 
-  } else if (mode === "workflow") {
+  }
+  
+  if (mode === "workflow") {
     return createDataStreamResponse({
       async execute(dataStream: DataStreamWriter) {
         try {
@@ -135,7 +137,6 @@ export async function POST(req: Request) {
       },
     });
 
-  } else {
-    return Response.json({ error: "Invalid mode specified" }, { status: 400 });
   }
+    return Response.json({ error: "Invalid mode specified" }, { status: 400 });
 }
