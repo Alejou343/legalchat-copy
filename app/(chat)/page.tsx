@@ -377,94 +377,90 @@ export default function Home() {
 					</ScrollArea>
 
 					{/* Input Area */}
-					<form
-						className="flex flex-col gap-2 p-4 border-t bg-background"
-						onSubmit={handleCustomSubmit}
-					>
-						{editingMessageId && (
-							<div className="text-xs text-muted-foreground px-1 flex justify-between items-center">
-								<span>Editing message...</span>
-								<Button
-									type="button"
-									variant="ghost"
-									size="sm"
-									className="h-auto px-2 py-0.5 text-xs"
-									onClick={() => {
-										setEditingMessageId(null);
-										setInput("");
-									}}
-								>
-									Cancel Edit
-								</Button>
-							</div>
-						)}
-						<div className="flex items-end gap-2 relative">
-							{/* Workflow Mode Button */}
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Button
-										type="button"
-										variant={chatMode === "workflow" ? "default" : "outline"}
-										className={cn("flex-shrink-0 transition-colors")}
-										onClick={toggleChatMode}
-										aria-label={
-											chatMode === "workflow"
-												? "Switch to Default Mode"
-												: "Switch to Workflow Mode"
-										}
-                    disabled={isLoading} // Disable while loading
-									>
-										<Wand2 className="size-5" />
-										Workflow
-									</Button>
-								</TooltipTrigger>
-								<TooltipContent>
-									<p>
-										{chatMode === "workflow"
-											? "Switch to Default Chat"
-											: "Switch to Workflow Mode"}
-									</p>
-								</TooltipContent>
-							</Tooltip>
+          <form
+            className="flex flex-col gap-2 relative items-center px-4 py-3 border-t bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+            onSubmit={handleCustomSubmit}
+          >
+            <div className="flex items-center w-full gap-2">
+              {/* Workflow Mode Toggle */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant={chatMode === "workflow" ? "default" : "ghost"}
+                    size="icon"
+                    className={cn(
+                      "transition-colors",
+                      chatMode === "workflow" && "bg-primary text-primary-foreground"
+                    )}
+                    onClick={toggleChatMode}
+                    disabled={isLoading}
+                    aria-label="Toggle Workflow Mode"
+                  >
+                    <Wand2 className="size-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  {chatMode === "workflow"
+                    ? "Workflow mode enabled"
+                    : "Switch to workflow mode"}
+                </TooltipContent>
+              </Tooltip>
 
-							{/* Message Input */}
-							<Textarea
-								ref={textareaRef}
-								className="flex-grow resize-none overflow-y-auto min-h-[40px] max-h-[200px] text-sm px-3 py-2" // Adjusted padding/min-height
-								placeholder={
-									editingMessageId
-										? "Edit your message..."
-										: "Send a message..."
-								}
-								value={input}
-								onChange={handleTextareaChange} // Use the hook's handler directly
-								onKeyDown={handleKeyDown}
-								rows={1} // Start with 1 row, auto-resizing will handle growth
-								disabled={isLoading && !editingMessageId} // Disable input when loading, unless editing
-							/>
-
-							{/* Send Button */}
-							<Tooltip>
-								<TooltipTrigger asChild>
-									{/* Wrap button in span for tooltip when disabled */}
-									<span>
-										<Button
-											type="submit"
-											size="icon" // Make it square
-											className="flex-shrink-0"
-											aria-label="Send Message"
-											disabled={isLoading || !input.trim()} // Disable while loading or if input is empty
-										>
-											<Gavel className="size-5" />
-										</Button>
-									</span>
-								</TooltipTrigger>
-								<TooltipContent>
-									<p>Send Message</p>
-								</TooltipContent>
-							</Tooltip>
-						</div>
-					</form>
+              {/* Message Input */}
+              <div className="flex-grow relative">
+                <Textarea
+                  ref={textareaRef}
+                  className={cn(
+                    "w-full min-h-[40px] max-h-[200px] resize-none pr-10 text-base bg-muted/60 rounded-lg border-none shadow-inner focus:ring-2 focus:ring-primary/30 transition",
+                    editingMessageId && "ring-2 ring-primary/40"
+                  )}
+                  placeholder={
+                    editingMessageId
+                      ? "Edit your message..."
+                      : chatMode === "workflow"
+                      ? "Describe your legal task..."
+                      : "Type your message..."
+                  }
+                  value={input}
+                  onChange={handleTextareaChange}
+                  onKeyDown={handleKeyDown}
+                  rows={1}
+                  disabled={isLoading}
+                  autoFocus
+                />
+                {/* Send Button (floating inside input) */}
+                <button
+                  type="submit"
+                  className={cn(
+                    "absolute bottom-2 right-2 p-1 rounded-full bg-primary text-primary-foreground shadow transition-opacity",
+                    (isLoading || !input.trim()) && "opacity-50 pointer-events-none"
+                  )}
+                  aria-label="Send Message"
+                  disabled={isLoading || !input.trim()}
+                >
+                  <Gavel size={18} />
+                </button>
+              </div>
+            </div>
+            {editingMessageId && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground w-full px-1">
+                <span>Editing message...</span>
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="px-0 h-auto text-primary"
+                  onClick={() => {
+                    setEditingMessageId(null);
+                    setInput("");
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
+          </form>
 				</div>
 			</div>
 		</TooltipProvider>
