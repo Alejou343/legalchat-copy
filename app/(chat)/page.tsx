@@ -344,7 +344,7 @@ export default function Home() {
 			<div className="flex flex-col justify-center items-center h-[calc(100vh-80px)] md:h-[calc(100vh-100px)] w-full">
 				{" "}
 				{/* Adjusted height */}
-				<div className="flex flex-col justify-between w-full max-w-4xl h-full bg-background rounded-lg shadow-xl border">
+				<div className="flex flex-col justify-between w-full max-w-4xl h-full bg-background rounded-lg shadow-xl">
 					{/* Welcome Messages with Smooth Transitions */}
 					{displayMessages.length === 0 && !isLoading && (
 							
@@ -427,7 +427,7 @@ export default function Home() {
 					</ScrollArea>
 					{/* Input Area */}
 					<form
-						className="flex flex-col gap-2 relative items-center px-4 py-3 border-t bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+						className="flex flex-col gap-2 relative items-center px-4 py-3 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60"
 						onSubmit={handleCustomSubmit}
 					>
 						<div className="flex items-center w-full gap-2">
