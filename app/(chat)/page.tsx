@@ -344,7 +344,7 @@ export default function Home() {
 			<div className="flex flex-col justify-center items-center h-[calc(100vh-80px)] md:h-[calc(100vh-100px)] w-full">
 				{" "}
 				{/* Adjusted height */}
-				<div className="flex flex-col justify-between w-full max-w-4xl h-full bg-background rounded-lg shadow-xl">
+				<div className="flex flex-col justify-between w-full h-full bg-background rounded-lg shadow-xl">
 					{/* Welcome Messages with Smooth Transitions */}
 					{displayMessages.length === 0 && !isLoading && (
 							
@@ -396,38 +396,40 @@ export default function Home() {
 						ref={scrollAreaRef}
 						className="flex-grow p-4 overflow-y-auto"
 					>
-						{/* Render Messages */}
-						{displayMessages.map(
-							(message, index) =>
-								message && (
-									<Message
-										key={message.id}
-										message={message}
-										index={index}
-										onEdit={handleEditMessage}
-									/>
-								),
-						)}
-
-						{/* Loading indicator for assistant response in default mode */}
-						{isLoading &&
-							displayMessages[displayMessages.length - 1]?.role === "user" &&
-							chatMode === "default" && (
-								<div className="flex flex-row gap-2 items-start mt-4">
-									<div className="size-[24px] flex justify-center items-center flex-shrink-0 text-zinc-500 mt-1">
-										<Scale />
-									</div>
-									<div className="flex flex-col gap-1 text-zinc-500 bg-muted rounded-md px-3 py-2">
-										<ThreeDotLoader />
-									</div>
-								</div>
+						<div className="max-w-4xl mx-auto flex flex-col gap-4">
+							{/* Render Messages */}
+							{displayMessages.map(
+								(message, index) =>
+									message && (
+										<Message
+											key={message.id}
+											message={message}
+											index={index}
+											onEdit={handleEditMessage}
+										/>
+									),
 							)}
+
+							{/* Loading indicator for assistant response in default mode */}
+							{isLoading &&
+								displayMessages[displayMessages.length - 1]?.role === "user" &&
+								chatMode === "default" && (
+									<div className="flex flex-row gap-2 items-start mt-4">
+										<div className="size-[24px] flex justify-center items-center flex-shrink-0 text-zinc-500 mt-1">
+											<Scale />
+										</div>
+										<div className="flex flex-col gap-1 text-zinc-500 bg-muted rounded-md px-3 py-2">
+											<ThreeDotLoader />
+										</div>
+									</div>
+								)}
+						</div>
 
 						<div ref={messagesEndRef} />
 					</ScrollArea>
 					{/* Input Area */}
 					<form
-						className="flex flex-col gap-2 relative items-center px-4 py-3 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+						className="flex flex-col gap-2 relative items-center mx-auto w-full max-w-4xl px-3 py-3 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60"
 						onSubmit={handleCustomSubmit}
 					>
 						<div className="flex items-center w-full gap-2">
