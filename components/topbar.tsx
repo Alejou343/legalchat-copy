@@ -23,7 +23,7 @@ export function Topbar() {
   
   // Function to handle new chat creation
   const handleNewChat = () => {
-    console.log("New Chat button clicked! Triggering reload."); 
+    // console.log("New Chat button clicked! Triggering reload."); 
     // router.push('/') // Use standard browser navigation for a full reload
     window.location.href = '/';
   }
