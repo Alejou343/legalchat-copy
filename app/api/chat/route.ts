@@ -1,142 +1,171 @@
+import logger from "@/lib/logger";
+import { chatSystemPrompt, parseStepsSystemPrompt } from "@/lib/prompts";
 import { openai } from "@ai-sdk/openai";
-import { streamText, generateText, generateObject, createDataStreamResponse, type DataStreamWriter } from "ai";
+import {
+  streamText,
+  generateText,
+  generateObject,
+  createDataStreamResponse,
+  type DataStreamWriter,
+} from "ai";
 import { z } from "zod";
 
 const MODEL_VERSION = "gpt-4o";
 
 async function parseSteps(input: string) {
-  const { object } = await generateObject({
-    model: openai(MODEL_VERSION),
-    schema: z.object({
-      steps: z.array(z.string())
-    }),
-    system: `
-    You are an expert at parsing instructions.
-    Extract a list of sequential steps from the user's input, even when steps aren't explicitly numbered.
-    Maintain the user's original wording but standardize format.
-    Break complex steps into simpler ones when appropriate.
-    Ignore conversational elements and focus only on actionable items.
+  try {
+    logger.warn("⚠️ Trying to parse steps");
+    const { object } = await generateObject({
+      model: openai(MODEL_VERSION),
+      schema: z.object({
+        steps: z.array(z.string()),
+      }),
+      system: parseStepsSystemPrompt(),
+      prompt: input,
+    });
 
-    Examples:
-    Example 1:
-    Input: "I need to do the following steps: 1. upload the image 2. upload the document 3. upload the video"
-    Output: ["upload the image", "upload the document", "upload the video"]
-
-    Example 2: 
-    Input: "First I want to fill out the I-485 form, then submit it with my supporting documents, and finally schedule a biometrics appointment"
-    Output: ["fill out the I-485 form", "submit form with supporting documents", "schedule a biometrics appointment"]
-
-    Example 3:
-    Input: "Can you help me understand what I need to do for asylum? I arrived last month."
-    Output: ["understand asylum requirements", "determine eligibility based on arrival date"]
-    `,
-    prompt: input,
-  });
-  
-  return object;
+    logger.info("✅ Parse steps completed");
+    return object;
+  } catch (err) {
+    logger.error("❌ Cannot parse steps");
+    return { steps: [] };
+  }
 }
 
 export async function POST(req: Request) {
-  const { messages, mode } = await req.json();
-  console.log("messages-----", messages);
-  console.log("mode-----", mode);
-
-  const system_prompt = `ACT AS A MIGRATION ATTORNEY that answers questions and redacts emails, letters and documents.
-          
-      STYLE RULES:
-      1.DO NOT use any placeholder formats such as [Client's Name],[Your Law Firm's Letterhead],[Date],<Date>, or [Your Name]. These are strictly forbidden.
-      2.DO NOT INVENT NAMES OR EMAILS. Only use names, contact information, or any other identifying details if explicitly provided in the input context. If not provided, use generic but professional phrasing like:
-
-      -"Dear Client,"
-      -"Best regards,
-      -Immigration Attorney"
-
-      3.The tone must be professional, empathetic, and legally informative.
-      4.DO NOT need for a summary at the end. 
-      5. Do NOT include statements like, 'You should consult a qualified immigration attorney.'.
-      6. DO NOT use expression like "I hope this message finds you well."
-      7. DO NOT use any placeholder format using [word(s)] or <word(s)>.
-`
-  if (mode === "default") {
-    const result = streamText({ 
-      model: openai(MODEL_VERSION),
-      system: system_prompt,
-      messages,
-    });
-
-    return result.toDataStreamResponse();
-
+  let messages, mode;
+  logger.warn('⚠️ Trying to get messages and mode')
+  try {
+    ({ messages, mode } = await req.json());
+    logger.info('✅ Messages and mode get successfully')
+  } catch (err) {
+    logger.error("❌ Cannot get messages and mode");
+    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  
-  if (mode === "workflow") {
+
+  if (mode === "default") {
+    try {
+      logger.warn("⚠️ Starting default mode processing");
+      const result = streamText({
+        model: openai(MODEL_VERSION),
+        system: chatSystemPrompt(),
+        messages,
+      });
+      logger.info("✅ Default mode processing completed");
+      return result.toDataStreamResponse();
+    } catch (error) {
+      logger.error("❌ Error in default mode processing");
+      return Response.json(
+        { error: "Failed to process default mode" },
+        { status: 500 }
+      );
+    }
+  } else if (mode === "workflow") {
+    logger.warn("⚠️ Starting workflow mode processing");
     return createDataStreamResponse({
       async execute(dataStream: DataStreamWriter) {
         try {
-          const { steps } = await parseSteps(messages[messages.length - 1].content);
-          console.log("Parsed steps:", steps);
+          logger.warn("⚠️ Trying to parse steps from messages");
+          const { steps } = await parseSteps(
+            messages[messages.length - 1].content
+          );
+          logger.info(`✅ Parsed ${steps.length} steps successfully`);
 
           const state = {
             steps,
             currentStep: 0,
             totalSteps: steps.length,
-            context: [] as string[]
+            context: [] as string[],
           };
 
-          dataStream.writeData({ workflowSteps: steps, currentStep: 0, isComplete: false });
-          
+          logger.warn("⚠️ Writing initial workflow data to stream");
+          dataStream.writeData({
+            workflowSteps: steps,
+            currentStep: 0,
+            isComplete: false,
+          });
+          logger.info("✅ Initial workflow data written successfully");
+
           for (let i = 0; i < state.steps.length - 1; i++) {
             const step = state.steps[i];
             state.currentStep = i;
-            console.log(`Processing step ${i+1}/${state.totalSteps}: ${step}`);
-            
-            dataStream.writeData({ workflowSteps: steps, currentStep: i, isComplete: false });
-            
+            logger.warn(`⚠️ Processing step ${i + 1}/${state.totalSteps}: ${step}`);
+
+            logger.warn(`⚠️ Writing step ${i} progress to stream`);
+            dataStream.writeData({
+              workflowSteps: steps,
+              currentStep: i,
+              isComplete: false,
+            });
+            logger.info(`✅ Step ${i} progress written successfully`);
+
+            logger.warn(`⚠️ Generating text for step ${i}`);
             const result = await generateText({
               model: openai(MODEL_VERSION),
-              system: system_prompt,
-              // system: "ACT AS A MIGRATION ATTORNEY. based on the context and the current step answer the question.",
+              system: chatSystemPrompt(),
               prompt: `
-                PREVIOUS_CONTEXT: ${state.context.join("\n") || 'None'}
+                PREVIOUS_CONTEXT: ${state.context.join("\n") || "None"}
                 CURRENT_STEP: ${step}
               `,
             });
-            
+            logger.info(`✅ Text generated successfully for step ${i}`);
+
             state.context.push(result.text);
-            console.log("Step result:::::", result.text);
+            logger.info(`ℹ️ Context updated with step ${i} result`);
           }
 
           const lastStep = state.steps[state.steps.length - 1];
           state.currentStep = state.steps.length - 1;
-          console.log(`Processing final step: ${lastStep}`);
-          
-          dataStream.writeData({ workflowSteps: steps, currentStep: state.currentStep, isComplete: false });
+          logger.warn(`⚠️ Processing final step: ${lastStep}`);
 
+          logger.warn("⚠️ Writing final step progress to stream");
+          dataStream.writeData({
+            workflowSteps: steps,
+            currentStep: state.currentStep,
+            isComplete: false,
+          });
+          logger.info("✅ Final step progress written successfully");
+
+          logger.warn("⚠️ Generating final text stream");
           const finalResult = streamText({
             model: openai(MODEL_VERSION),
-            system: system_prompt,
-            temperature:0,
+            system: chatSystemPrompt(),
+            temperature: 0,
             prompt: `
-              PREVIOUS_CONTEXT: ${state.context.join("\n") || 'None'}
+              PREVIOUS_CONTEXT: ${state.context.join("\n") || "None"}
               CURRENT_STEP: ${lastStep}
               Generate the final answer for the user based on the PREVIOUS_CONTEXT and the CURRENT_STEP.
             `,
             onFinish: () => {
-              dataStream.writeData({ workflowSteps: steps, currentStep: state.currentStep, isComplete: true });
-              console.log("Final text stream finished, marked data complete.");
-            }
+              logger.warn("⚠️ Final text stream finished, marking complete");
+              dataStream.writeData({
+                workflowSteps: steps,
+                currentStep: state.currentStep,
+                isComplete: true,
+              });
+              logger.info("✅ Workflow marked as complete in data stream");
+            },
           });
 
+          logger.warn("⚠️ Merging final result into data stream");
           await finalResult.mergeIntoDataStream(dataStream);
-
+          logger.info("✅ Final result merged into data stream successfully");
         } catch (error) {
-          console.error("Error during workflow processing or final stream:", error);
-          try { dataStream.writeData({ error: "Workflow processing failed" }); } catch {};
+          logger.error("❌ Error during workflow processing");
+          try {
+            logger.warn("⚠️ Writing error to data stream");
+            dataStream.writeData({ error: "Workflow processing failed" });
+            logger.error("❌ Workflow processing failed");
+          } catch (innerError) {
+            logger.error("❌ Failed to write error to data stream");
+          }
         } finally {
-          console.log("Data stream lifecycle managed by createDataStreamResponse.");
+          logger.info("ℹ️ Data stream lifecycle completed");
         }
       },
     });
-
-  }
+  } else {
+    logger.error("❌ Invalid mode specified");
     return Response.json({ error: "Invalid mode specified" }, { status: 400 });
+  }
 }
