@@ -1,7 +1,7 @@
 import { embed, embedMany } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { db } from '../db';
-import { cosineDistance, desc, gt, sql } from 'drizzle-orm';
+import { and, cosineDistance, desc, eq, gt, sql } from 'drizzle-orm';
 import { embeddings } from '../db/schema/embeddings';
 import logger from '../logger';
 
@@ -51,19 +51,28 @@ export const generateEmbedding = async (value: string): Promise<number[]> => {
   return embedding;
 };
 
-export const findRelevantContent = async (userQuery: string) => {
+export const findRelevantContent = async (userQuery: string, resourceId: string) => {
     logger.info("⚠️ Buscando contenido relevante para la consulta del usuario");
+    
     const userQueryEmbedded = await generateEmbedding(userQuery);
+  
     const similarity = sql<number>`1 - (${cosineDistance(
-        embeddings.embedding,
-        userQueryEmbedded,
+      embeddings.embedding,
+      userQueryEmbedded,
     )})`;
+  
     const similarGuides = await db
-    .select({ name: embeddings.content, similarity })
-    .from(embeddings)
-    .where(gt(similarity, 0.5))
-    .orderBy(t => desc(t.similarity))
-    .limit(4);
+      .select({ name: embeddings.content, similarity })
+      .from(embeddings)
+      .where(
+        and(
+          gt(similarity, 0.5),
+          eq(embeddings.resourceId, resourceId)
+        )
+      )
+      .orderBy(t => desc(t.similarity))
+      .limit(4);
+  
     logger.info("✅ Contenido relevante encontrado");
-  return similarGuides;
-};
+    return similarGuides;
+  };

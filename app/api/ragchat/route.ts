@@ -60,7 +60,10 @@ export async function POST(req: NextRequest) {
       const processedContent = content.replace(/\s+/g, " ").trim();
       logger.info("✅ Texto del PDF procesado correctamente");
 
-      await createResource({ content: processedContent });
+      const resourceResponse = await createResource({
+        content: processedContent,
+      });
+      const { resourceId } = resourceResponse;
       logger.info("✅ Recurso creado en la base de conocimiento");
 
       return new Response(
@@ -68,6 +71,7 @@ export async function POST(req: NextRequest) {
           message: "Documento procesado exitosamente",
           filename: file.name,
           contentLength: processedContent.length,
+          resourceId: resourceId,
         }),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
@@ -83,7 +87,7 @@ export async function POST(req: NextRequest) {
   // Flujo normal de chat
   try {
     logger.warn("⚠️ Procesando solicitud de chat");
-    const { messages } = await req.json();
+    const { messages, resourceId } = await req.json();
     logger.info("✅ Mensajes obtenidos del cuerpo de la solicitud");
 
     const result = streamText({
@@ -95,9 +99,9 @@ export async function POST(req: NextRequest) {
         getInformation: tool({
           description: `get information from your knowledge base to answer questions.`,
           parameters: z.object({
-            question: z.string().describe('the users question'),
+            question: z.string().describe("the users question"),
           }),
-          execute: async ({ question }) => await findRelevantContent(question)
+          execute: async ({ question }) => await findRelevantContent(question, resourceId),
         }),
       },
     });

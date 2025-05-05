@@ -43,6 +43,9 @@ export default function Chat() {
     error,
   } = useChat({
     api: "/api/ragchat",
+    body: {
+        resourceId: localStorage.getItem("currentUserId"),
+    }
   });
 
   // Scroll to bottom when messages change
@@ -85,6 +88,7 @@ export default function Chat() {
       if (!response.ok) throw new Error("Failed to upload PDF");
 
       const data = await response.json();
+      localStorage.setItem('currentUserId', data.resourceId);
       setUploadedFile(file.name);
       setUploadSuccess(true);
 
