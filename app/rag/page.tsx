@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect, useRef } from "react"
 import { useChat } from "@ai-sdk/react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -12,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { Send, Bot, Loader2, FileText, Search, Paperclip, X, CheckCircle2 } from "lucide-react"
+import { Send, Bot, Loader2, FileText, Paperclip, X, CheckCircle2 } from "lucide-react"
 
 export default function Chat() {
   const [file, setFile] = useState<File | null>(null)
@@ -21,31 +19,26 @@ export default function Chat() {
   const [uploadSuccess, setUploadSuccess] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const scrollAreaRef = useRef<HTMLDivElement>(null)
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
     api: "/api/ragchat",
   })
 
   // Scroll to bottom when messages change
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
   // Show upload success animation
   useEffect(() => {
     if (uploadSuccess) {
-      const timer = setTimeout(() => {
-        setUploadSuccess(false)
-      }, 3000)
+      const timer = setTimeout(() => setUploadSuccess(false), 3000)
       return () => clearTimeout(timer)
     }
   }, [uploadSuccess])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
+    if (e.target.files?.[0]) {
       const selectedFile = e.target.files[0]
       if (selectedFile.type === "application/pdf") {
         setFile(selectedFile)
@@ -55,63 +48,59 @@ export default function Chat() {
     }
   }
 
+  const handleFileUpload = async () => {
+    if (!file) return
+
+    setIsUploading(true)
+    const formData = new FormData()
+    formData.append("file", file)
+
+    try {
+      const response = await fetch("/api/ragchat", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) throw new Error("Failed to upload PDF")
+
+      setUploadedFile(file.name)
+      setUploadSuccess(true)
+      
+      // Add a user message about the uploaded file
+      await append({
+        content: `I've uploaded ${file.name}`,
+        role: "user"
+      })
+
+    } catch (error) {
+      console.error("Upload error:", error)
+      alert("Error uploading file")
+    } finally {
+      setIsUploading(false)
+      setFile(null)
+    }
+  }
+
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     if (file) {
-      setIsUploading(true)
+      await handleFileUpload()
+    }
 
-      try {
-        // Create form data for file upload
-        const formData = new FormData()
-        formData.append("file", file)
-
-        // Upload the file first
-        const uploadResponse = await fetch("/api/ragchat", {
-          method: "POST",
-          body: formData,
-        })
-
-        if (!uploadResponse.ok) {
-          throw new Error("Failed to upload PDF")
-        }
-
-        // Get the file content from the response
-        const fileData = await uploadResponse.json()
-
-        // Store the uploaded filename
-        setUploadedFile(file.name)
-        setUploadSuccess(true)
-
-        // Now send a message about the uploaded file
-        const fileMessage = input.trim()
-          ? `${input} (I've uploaded a PDF file named "${file.name}")`
-          : `I've uploaded a PDF file named "${file.name}" for analysis.`
-
-        // Submit the message
-        await handleSubmit(e, { data: { message: fileMessage } })
-      } catch (error) {
-        console.error("Error handling file upload:", error)
-        alert("Error uploading file. Please try again.")
-      } finally {
-        setIsUploading(false)
-        setFile(null)
-      }
-    } else {
-      // Regular text message submission
+    if (input.trim()) {
       handleSubmit(e)
     }
   }
 
-  // Function to render tool invocation content
   const renderToolInvocation = (invocation: any) => {
     if (!invocation) return null
 
-    if (invocation.toolName === "queryDocument") {
+    if (invocation.toolName === "addResource") {
       return (
         <div className="flex items-center gap-1 text-blue-500">
-          <Search className="h-3 w-3 animate-pulse" />
-          <span>Searching document for: `{invocation.toolInput.query}`</span>
+          <FileText className="h-3 w-3 animate-pulse" />
+          <span>Adding resource to knowledge base...</span>
         </div>
       )
     }
@@ -137,7 +126,7 @@ export default function Chat() {
         </div>
 
         {/* Chat Area */}
-        <ScrollArea className="flex-grow p-4" ref={scrollAreaRef}>
+        <ScrollArea className="flex-grow p-4">
           <div className="space-y-6">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[50vh] text-center text-gray-500">
@@ -151,7 +140,7 @@ export default function Chat() {
                 </p>
               </div>
             ) : (
-              messages.map((message, index) => (
+              messages.map((message) => (
                 <div
                   key={message.id}
                   className={cn("flex gap-3 w-full", message.role === "user" ? "justify-end" : "justify-start")}
@@ -159,7 +148,6 @@ export default function Chat() {
                   {message.role !== "user" && (
                     <Avatar className="h-8 w-8 mt-1">
                       <AvatarFallback className="bg-primary/10 text-primary">AI</AvatarFallback>
-                      <AvatarImage src="/placeholder.svg?height=32&width=32" />
                     </Avatar>
                   )}
 
@@ -171,12 +159,12 @@ export default function Chat() {
                         : "bg-gray-100 text-gray-800 rounded-tl-none",
                     )}
                   >
-                    {message.content.length > 0 ? (
+                    {message.content ? (
                       <div className="whitespace-pre-wrap text-sm">{message.content}</div>
                     ) : (
                       <div className="italic text-sm flex items-center gap-2 text-gray-500">
                         <Loader2 className="h-3 w-3 animate-spin" />
-                        {message?.toolInvocations?.[0]
+                        {message.toolInvocations?.[0]
                           ? renderToolInvocation(message.toolInvocations[0])
                           : "Thinking..."}
                       </div>
@@ -186,34 +174,10 @@ export default function Chat() {
                   {message.role === "user" && (
                     <Avatar className="h-8 w-8 mt-1">
                       <AvatarFallback className="bg-blue-100 text-blue-600">You</AvatarFallback>
-                      <AvatarImage src="/placeholder.svg?height=32&width=32" />
                     </Avatar>
                   )}
                 </div>
               ))
-            )}
-            {isLoading && !messages.some((m) => !m.content) && (
-              <div className="flex items-start gap-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary/10 text-primary">AI</AvatarFallback>
-                </Avatar>
-                <div className="bg-gray-100 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
-                  <div className="flex space-x-2">
-                    <div
-                      className="h-2 w-2 bg-gray-300 rounded-full animate-bounce"
-                      style={{ animationDelay: "0ms" }}
-                    ></div>
-                    <div
-                      className="h-2 w-2 bg-gray-300 rounded-full animate-bounce"
-                      style={{ animationDelay: "300ms" }}
-                    ></div>
-                    <div
-                      className="h-2 w-2 bg-gray-300 rounded-full animate-bounce"
-                      style={{ animationDelay: "600ms" }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
             )}
             <div ref={messagesEndRef} />
           </div>
@@ -285,7 +249,7 @@ export default function Chat() {
                 disabled={(!input.trim() && !file) || isLoading || isUploading}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-8 w-8 rounded-full"
               >
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {isLoading || isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
           </form>
