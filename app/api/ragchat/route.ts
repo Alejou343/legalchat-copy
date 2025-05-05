@@ -88,8 +88,8 @@ export async function POST(req: NextRequest) {
 
     const result = streamText({
       model: openai("gpt-4o"),
-      system: `Eres un asistente especializado en analizar documentos PDF. 
-                Responde basado en el conocimiento extraído de los documentos.`,
+      system: `You're an AI assistant that helps users find information in their knowledge base. You can answer questions based on the content provided.`,
+      temperature: 0.2,
       messages,
       tools: {
         getInformation: tool({
@@ -97,12 +97,13 @@ export async function POST(req: NextRequest) {
           parameters: z.object({
             question: z.string().describe('the users question'),
           }),
-          execute: async ({ question }) => findRelevantContent(question),
+          execute: async ({ question }) => await findRelevantContent(question)
         }),
       },
     });
 
     logger.info("✅ Flujo de chat iniciado con éxito");
+    console.log("Flujo de chat:", result.toDataStreamResponse());
     return result.toDataStreamResponse();
   } catch (error) {
     logger.error("❌ Error en el flujo de chat", error);
