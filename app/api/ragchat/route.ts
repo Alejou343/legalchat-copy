@@ -103,7 +103,6 @@ export async function POST(req: NextRequest) {
     });
 
     logger.info("✅ Flujo de chat iniciado con éxito");
-    console.log("Flujo de chat:", result.toDataStreamResponse());
     return result.toDataStreamResponse();
   } catch (error) {
     logger.error("❌ Error en el flujo de chat", error);
