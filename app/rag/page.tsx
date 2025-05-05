@@ -32,6 +32,7 @@ export default function Chat() {
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [resourceId, setResourceId] = useState<string | null>(null);
 
   const {
     messages,
@@ -41,12 +42,14 @@ export default function Chat() {
     isLoading,
     append,
     error,
-  } = useChat({
-    api: "/api/ragchat",
-    body: {
-        resourceId: localStorage.getItem("currentUserId"),
-    }
-  });
+  } = useChat(
+    resourceId
+      ? {
+          api: "/api/ragchat",
+          body: { resourceId },
+        }
+      : undefined
+  );
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -88,7 +91,7 @@ export default function Chat() {
       if (!response.ok) throw new Error("Failed to upload PDF");
 
       const data = await response.json();
-      localStorage.setItem('currentUserId', data.resourceId);
+      localStorage.setItem("currentUserId", data.resourceId);
       setUploadedFile(file.name);
       setUploadSuccess(true);
 
@@ -104,6 +107,11 @@ export default function Chat() {
       setFile(null);
     }
   };
+
+  useEffect(() => {
+    const id = localStorage.getItem("currentUserId");
+    setResourceId(id);
+  }, []);
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
