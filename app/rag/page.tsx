@@ -145,6 +145,10 @@ export default function Chat() {
     }
   };
 
+  useEffect(() => {
+    console.log(messages)
+  }, [messages])
+
   const renderToolInvocation = (invocation: any) => {
     if (!invocation) return null;
 

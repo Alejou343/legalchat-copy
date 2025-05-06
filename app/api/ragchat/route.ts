@@ -6,9 +6,6 @@ import { z } from "zod";
 import { NextRequest } from "next/server";
 import { findRelevantContent } from "@/lib/ai/embedding";
 
-export const maxDuration = 30;
-export const runtime = "nodejs";
-
 async function extractTextWithPdfParse(buffer: Buffer): Promise<string> {
   try {
     logger.warn("⚠️ Extrayendo texto del PDF");
@@ -92,7 +89,9 @@ export async function POST(req: NextRequest) {
 
     const result = streamText({
       model: openai("gpt-4o"),
-      system: `You're an AI assistant that helps users find information in their knowledge base. You can answer questions based on the content provided.`,
+      system: `You are a helpful assistant. Check your knowledge base before answering any questions.
+    Only respond to questions using information from tool calls.
+    if no relevant information is found in the tool calls, respond, "Sorry, I don't know."`,
       temperature: 0.2,
       messages,
       tools: {
@@ -101,7 +100,13 @@ export async function POST(req: NextRequest) {
           parameters: z.object({
             question: z.string().describe("the users question"),
           }),
-          execute: async ({ question }) => await findRelevantContent(question, resourceId),
+          execute: async ({ question }) => await findRelevantContent(question),
+          experimental_toToolResultContent: (result) => {
+            return [{
+              type: 'text',
+              text: result.map(x => x.name).join(" "),
+            }];
+          },
         }),
       },
     });

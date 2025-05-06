@@ -1,9 +1,9 @@
-import { embed, embedMany } from 'ai';
-import { openai } from '@ai-sdk/openai';
-import { db } from '../db';
-import { and, cosineDistance, desc, eq, gt, sql } from 'drizzle-orm';
-import { embeddings } from '../db/schema/embeddings';
-import logger from '../logger';
+import { embed, embedMany } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { db } from "../db";
+import { and, cosineDistance, desc, eq, gt, sql } from "drizzle-orm";
+import { embeddings } from "../db/schema/embeddings";
+import logger from "../logger";
 
 const embeddingModel = openai.embedding("text-embedding-3-small");
 
@@ -43,7 +43,7 @@ export const generateEmbeddings = async (
 };
 
 export const generateEmbedding = async (value: string): Promise<number[]> => {
-  const input = value.replaceAll('\\n', ' ');
+  const input = value.replaceAll("\\n", " ");
   const { embedding } = await embed({
     model: embeddingModel,
     value: input,
@@ -51,28 +51,31 @@ export const generateEmbedding = async (value: string): Promise<number[]> => {
   return embedding;
 };
 
-export const findRelevantContent = async (userQuery: string, resourceId: string) => {
-    logger.info("⚠️ Buscando contenido relevante para la consulta del usuario");
-    
-    const userQueryEmbedded = await generateEmbedding(userQuery);
-  
-    const similarity = sql<number>`1 - (${cosineDistance(
-      embeddings.embedding,
-      userQueryEmbedded,
-    )})`;
-  
-    const similarGuides = await db
-      .select({ name: embeddings.content, similarity })
-      .from(embeddings)
-      .where(
-        and(
-          gt(similarity, 0.5),
-          eq(embeddings.resourceId, resourceId)
-        )
-      )
-      .orderBy(t => desc(t.similarity))
-      .limit(4);
-  
+export const findRelevantContent = async (
+  userQuery: string,
+  // resourceId: string
+) => {
+  logger.info("⚠️ Buscando contenido relevante para la consulta del usuario");
+
+  const userQueryEmbedded = await generateEmbedding(userQuery);
+
+  const similarity = sql<number>`1 - (${cosineDistance(
+    embeddings.embedding,
+    userQueryEmbedded
+  )})`;
+
+  const similarGuides = await db
+    .select({ name: embeddings.content, similarity })
+    .from(embeddings)
+    // .where(and(gt(similarity, 0.5), eq(embeddings.resourceId, resourceId)))
+    .where(gt(similarity, 0.5))
+    .orderBy((t) => desc(t.similarity))
+    .limit(10);
+
+  if (similarGuides.length > 0) {
     logger.info("✅ Contenido relevante encontrado");
-    return similarGuides;
-  };
+  } else {
+    logger.error("❌ No se encontró contenido relevante");
+  }
+  return similarGuides;
+};
