@@ -42,14 +42,10 @@ export default function Chat() {
     isLoading,
     append,
     error,
-  } = useChat(
-    resourceId
-      ? {
-          api: "/api/ragchat",
-          body: { resourceId },
-        }
-      : undefined
-  );
+  } = useChat({
+    api: "/api/ragchat",
+    body: { resourceId },
+  });
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -144,10 +140,6 @@ export default function Chat() {
       }
     }
   };
-
-  useEffect(() => {
-    console.log(messages)
-  }, [messages])
 
   const renderToolInvocation = (invocation: any) => {
     if (!invocation) return null;

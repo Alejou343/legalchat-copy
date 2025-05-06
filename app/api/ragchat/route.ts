@@ -89,10 +89,10 @@ export async function POST(req: NextRequest) {
 
     const result = streamText({
       model: openai("gpt-4o"),
-      system: `You are a helpful assistant. Check your knowledge base before answering any questions.
-    Only respond to questions using information from tool calls.
-    if no relevant information is found in the tool calls, respond, "Sorry, I don't know."`,
+      system: `You are a helpful assistant. Use the content from tool calls to answer the user's question. 
+If the content does not contain enough information, say "Sorry, I don't know based on the retrieved content."`,
       temperature: 0.2,
+      maxSteps: 5,
       messages,
       tools: {
         getInformation: tool({
@@ -100,13 +100,18 @@ export async function POST(req: NextRequest) {
           parameters: z.object({
             question: z.string().describe("the users question"),
           }),
-          execute: async ({ question }) => await findRelevantContent(question),
-          experimental_toToolResultContent: (result) => {
-            return [{
-              type: 'text',
-              text: result.map(x => x.name).join(" "),
-            }];
+          execute: async ({ question }) => {
+            const relevantContent = await findRelevantContent(question);
+            console.log("relevantContent", relevantContent);
+            return relevantContent;
           },
+            experimental_toToolResultContent: (result) => {
+                console.log(result.map(x => x.name).join('\n\n'))
+              return [{
+                type: 'text',
+                text: result.map(x => x.name).join('\n\n'),
+              }];
+            },
         }),
       },
     });
