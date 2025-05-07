@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       const resourceResponse = await createResource({
         content: processedContent,
       });
-      const { resourceId } = resourceResponse;
+      const { resource_id } = resourceResponse;
       logger.info("✅ Recurso creado en la base de conocimiento");
 
       return new Response(
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
           message: "Documento procesado exitosamente",
           filename: file.name,
           contentLength: processedContent.length,
-          resourceId: resourceId,
+          resource_id: resource_id,
         }),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
   // Flujo normal de chat
   try {
     logger.warn("⚠️ Procesando solicitud de chat");
-    const { messages, resourceId } = await req.json();
+    const { messages, resource_id } = await req.json();
     logger.info("✅ Mensajes obtenidos del cuerpo de la solicitud");
 
     const result = streamText({
@@ -101,12 +101,9 @@ If the content does not contain enough information, say "Sorry, I don't know bas
             question: z.string().describe("the users question"),
           }),
           execute: async ({ question }) => {
-            const relevantContent = await findRelevantContent(question);
-            console.log("relevantContent", relevantContent);
-            return relevantContent;
+            return await findRelevantContent(question, resource_id);
           },
             experimental_toToolResultContent: (result) => {
-                console.log(result.map(x => x.name).join('\n\n'))
               return [{
                 type: 'text',
                 text: result.map(x => x.name).join('\n\n'),

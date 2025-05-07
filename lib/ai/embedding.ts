@@ -9,8 +9,8 @@ const embeddingModel = openai.embedding("text-embedding-3-small");
 
 export const generateChunks = (
   input: string,
-  maxLength: number = 100,
-  overlap: number = 20
+  maxLength: number = 1000,
+  overlap: number = 100
 ): string[] => {
   const chunks: string[] = [];
 
@@ -53,29 +53,49 @@ export const generateEmbedding = async (value: string): Promise<number[]> => {
 
 export const findRelevantContent = async (
   userQuery: string,
-  // resourceId: string
+  resource_id: string
 ) => {
-  logger.info("⚠️ Buscando contenido relevante para la consulta del usuario");
+  try {
+    logger.info("⚠️ Buscando contenido relevante para la consulta del usuario");
 
-  const userQueryEmbedded = await generateEmbedding(userQuery);
+    if (!userQuery || userQuery.trim() === "") {
+      throw new Error("La consulta del usuario está vacía.");
+    }
 
-  const similarity = sql<number>`1 - (${cosineDistance(
-    embeddings.embedding,
-    userQueryEmbedded
-  )})`;
+    // Generar embedding del input del usuario
+    const userQueryEmbedded = await generateEmbedding(userQuery);
 
-  const similarGuides = await db
-    .select({ name: embeddings.content, similarity })
-    .from(embeddings)
-    // .where(and(gt(similarity, 0.5), eq(embeddings.resourceId, resourceId)))
-    .where(gt(similarity, 0.5))
-    .orderBy((t) => desc(t.similarity))
-    .limit(10);
+    // Crear expresión de similitud
+    const similarityExpr = sql<number>`1 - (${cosineDistance(
+      embeddings.embedding,
+      userQueryEmbedded
+    )})`;
 
-  if (similarGuides.length > 0) {
-    logger.info("✅ Contenido relevante encontrado");
-  } else {
-    logger.error("❌ No se encontró contenido relevante");
+    // Ejecutar consulta con ambas condiciones en el where
+    const similarGuides = await db
+      .select({
+        name: embeddings.content,
+        similarity: similarityExpr,
+      })
+      .from(embeddings)
+      .where(
+        and(
+          gt(similarityExpr, 0.5)
+          // eq(embeddings.resource_id, resource_id)
+        )
+      )
+      .orderBy(() => desc(similarityExpr))
+      .limit(10);
+
+    if (similarGuides.length > 0) {
+      logger.info("✅ Contenido relevante encontrado");
+    } else {
+      logger.warn("❌ No se encontró contenido relevante");
+    }
+
+    return similarGuides;
+  } catch (error) {
+    logger.error("❌ Error al buscar contenido relevante:", error);
+    return []; // o podrías lanzar el error si quieres que lo maneje el caller
   }
-  return similarGuides;
 };
