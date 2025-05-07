@@ -55,38 +55,47 @@ export const findRelevantContent = async (
   userQuery: string,
   resource_id: string
 ) => {
-  logger.info('⚠️ Buscando contenido relevante para la consulta del usuario');
+  try {
+    logger.info("⚠️ Buscando contenido relevante para la consulta del usuario");
 
-  // Generar embedding del input del usuario
-  const userQueryEmbedded = await generateEmbedding(userQuery);
+    if (!userQuery || userQuery.trim() === "") {
+      throw new Error("La consulta del usuario está vacía.");
+    }
 
-  // Crear expresión de similitud
-  const similarityExpr = sql<number>`1 - (${cosineDistance(
-    embeddings.embedding,
-    userQueryEmbedded
-  )})`;
+    // Generar embedding del input del usuario
+    const userQueryEmbedded = await generateEmbedding(userQuery);
 
-  // Ejecutar consulta con ambas condiciones en el where
-  const similarGuides = await db
-    .select({
-      name: embeddings.content,
-      similarity: similarityExpr,
-    })
-    .from(embeddings)
-    .where(
-      and(
-        gt(similarityExpr, 0.5),
-        eq(embeddings.resource_id, resource_id)
+    // Crear expresión de similitud
+    const similarityExpr = sql<number>`1 - (${cosineDistance(
+      embeddings.embedding,
+      userQueryEmbedded
+    )})`;
+
+    // Ejecutar consulta con ambas condiciones en el where
+    const similarGuides = await db
+      .select({
+        name: embeddings.content,
+        similarity: similarityExpr,
+      })
+      .from(embeddings)
+      .where(
+        and(
+          gt(similarityExpr, 0.5)
+          // eq(embeddings.resource_id, resource_id)
+        )
       )
-    )
-    .orderBy(() => desc(similarityExpr))
-    .limit(10);
+      .orderBy(() => desc(similarityExpr))
+      .limit(10);
 
-  if (similarGuides.length > 0) {
-    logger.info('✅ Contenido relevante encontrado');
-  } else {
-    logger.error('❌ No se encontró contenido relevante');
+    if (similarGuides.length > 0) {
+      logger.info("✅ Contenido relevante encontrado");
+    } else {
+      logger.warn("❌ No se encontró contenido relevante");
+    }
+
+    return similarGuides;
+  } catch (error) {
+    logger.error("❌ Error al buscar contenido relevante:", error);
+    return []; // o podrías lanzar el error si quieres que lo maneje el caller
   }
-
-  return similarGuides;
 };
