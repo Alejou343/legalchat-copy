@@ -9,8 +9,8 @@ const embeddingModel = openai.embedding("text-embedding-3-small");
 
 export const generateChunks = (
   input: string,
-  maxLength: number = 100,
-  overlap: number = 20
+  maxLength: number = 1000,
+  overlap: number = 100
 ): string[] => {
   const chunks: string[] = [];
 
@@ -53,7 +53,7 @@ export const generateEmbedding = async (value: string): Promise<number[]> => {
 
 export const findRelevantContent = async (
   userQuery: string,
-  // resourceId: string
+  resource_id: string
 ) => {
   logger.info("⚠️ Buscando contenido relevante para la consulta del usuario");
 
@@ -67,7 +67,7 @@ export const findRelevantContent = async (
   const similarGuides = await db
     .select({ name: embeddings.content, similarity })
     .from(embeddings)
-    // .where(and(gt(similarity, 0.5), eq(embeddings.resourceId, resourceId)))
+    // .where(and(gt(similarity, 0.5), eq(embeddings.resource_id, resource_id)))
     .where(gt(similarity, 0.5))
     .orderBy((t) => desc(t.similarity))
     .limit(10);

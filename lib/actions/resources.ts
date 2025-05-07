@@ -21,19 +21,19 @@ export const createResource = async (input: NewResourceParams) => {
     const embeddings = await generateEmbeddings(content);
     await db.insert(embeddingsTable).values(
       embeddings.map((embedding) => ({
-        resourceId: resource.id,
+        resource_id: resource.id,
         ...embedding,
       }))
     );
 
     return {
       message: "Resource successfully created and embedded.",
-      resourceId: resource.id,
+      resource_id: resource.id,
     };
 } catch (error) {
     return {
       message: error || 'Error creating resource',
-      resourceId: null,
+      resource_id: null,
     };
   }
 };
