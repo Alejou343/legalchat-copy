@@ -3,7 +3,7 @@ import { createResource } from "@/lib/actions/resources";
 import { openai } from "@ai-sdk/openai";
 import { streamText, tool } from "ai";
 import { z } from "zod";
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { findRelevantContent } from "@/lib/ai/embedding";
 
 async function extractTextWithPdfParse(buffer: Buffer): Promise<string> {
@@ -96,7 +96,7 @@ If the content does not contain enough information, say "Sorry, I don't know bas
       messages,
       tools: {
         getInformation: tool({
-          description: `get information from your knowledge base to answer questions.`,
+          description: "get information from your knowledge base to answer questions.",
           parameters: z.object({
             question: z.string().describe("the users question"),
           }),

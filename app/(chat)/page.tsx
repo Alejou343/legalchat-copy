@@ -4,7 +4,8 @@
 import { useChat, type Message as VercelMessage } from "@ai-sdk/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Scale, Wand2, Gavel } from "lucide-react";
+import { Scale, Wand2, Gavel,   Loader2,
+	Paperclip } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Message } from "@/components/message"; // Assuming Message component exists
 import { ThreeDotLoader } from "@/components/ThreeDotLoader"; // Assuming ThreeDotLoader exists
@@ -38,6 +39,10 @@ export default function Home() {
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+	const [file, setFile] = useState<File | null>(null);
+	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [isUploading, setIsUploading] = useState(false);
 
 	const {
 		messages: apiMessages, // Source of truth from the API/hook
@@ -116,6 +121,17 @@ export default function Home() {
 			}
 		}
 	};
+
+	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		if (e.target.files?.[0]) {
+		  const selectedFile = e.target.files[0];
+		  if (selectedFile.type === "application/pdf") {
+			setFile(selectedFile);
+		  } else {
+			alert("Please upload a PDF file");
+		  }
+		}
+	  };
 
 	// Handle submitting the form (new messages or edits)
 	const handleCustomSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -433,6 +449,35 @@ export default function Home() {
 						onSubmit={handleCustomSubmit}
 					>
 						<div className="flex items-center w-full gap-2">
+
+							{/* PDF Upload Button */}
+							<Tooltip>
+								<TooltipTrigger asChild>
+								<Button
+									type="button"
+									size="icon"
+									variant="secondary"
+									onClick={() => fileInputRef.current?.click()}
+									disabled={isLoading || isUploading}
+									className="h-10 w-10 flex-shrink-0 rounded-xl transition-colors"
+								>
+									{isUploading ? (
+									<Loader2 className="h-5 w-5 animate-spin" />
+									) : (
+									<Paperclip className="h-5 w-5" />
+									)}
+									<input
+									ref={fileInputRef}
+									type="file"
+									accept="application/pdf"
+									onChange={handleFileChange}
+									className="hidden"
+									/>
+								</Button>
+								</TooltipTrigger>
+								<TooltipContent side="top">Upload PDF Document</TooltipContent>
+							</Tooltip>
+
 							{/* Workflow Mode Toggle */}
 							<Tooltip>
 								<TooltipTrigger asChild>
