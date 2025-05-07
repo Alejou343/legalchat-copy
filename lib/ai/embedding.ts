@@ -55,27 +55,38 @@ export const findRelevantContent = async (
   userQuery: string,
   resource_id: string
 ) => {
-  logger.info("⚠️ Buscando contenido relevante para la consulta del usuario");
+  logger.info('⚠️ Buscando contenido relevante para la consulta del usuario');
 
+  // Generar embedding del input del usuario
   const userQueryEmbedded = await generateEmbedding(userQuery);
 
-  const similarity = sql<number>`1 - (${cosineDistance(
+  // Crear expresión de similitud
+  const similarityExpr = sql<number>`1 - (${cosineDistance(
     embeddings.embedding,
     userQueryEmbedded
   )})`;
 
+  // Ejecutar consulta con ambas condiciones en el where
   const similarGuides = await db
-    .select({ name: embeddings.content, similarity })
+    .select({
+      name: embeddings.content,
+      similarity: similarityExpr,
+    })
     .from(embeddings)
-    // .where(and(gt(similarity, 0.5), eq(embeddings.resource_id, resource_id)))
-    .where(gt(similarity, 0.5))
-    .orderBy((t) => desc(t.similarity))
+    .where(
+      and(
+        gt(similarityExpr, 0.5),
+        eq(embeddings.resource_id, resource_id)
+      )
+    )
+    .orderBy(() => desc(similarityExpr))
     .limit(10);
 
   if (similarGuides.length > 0) {
-    logger.info("✅ Contenido relevante encontrado");
+    logger.info('✅ Contenido relevante encontrado');
   } else {
-    logger.error("❌ No se encontró contenido relevante");
+    logger.error('❌ No se encontró contenido relevante');
   }
+
   return similarGuides;
 };
