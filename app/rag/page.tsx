@@ -126,7 +126,7 @@ export default function Chat() {
           if (
             lastMessage &&
             !lastMessage.content &&
-            !lastMessage.toolInvocations
+            !lastMessage.parts
           ) {
             append({
               content:
@@ -245,7 +245,7 @@ export default function Chat() {
                       </div>
                     ) : message.toolInvocations?.[0] ? (
                       <div className="text-sm italic text-gray-500">
-                        {renderToolInvocation(message.toolInvocations[0])}
+                        {renderToolInvocation(message.parts[0])}
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 text-sm italic text-gray-500">

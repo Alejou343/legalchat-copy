@@ -4,19 +4,13 @@
 import { useChat, type Message as VercelMessage } from "@ai-sdk/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Scale, Wand2, Gavel,   Loader2,
-	Paperclip } from "lucide-react";
+import { Scale, Wand2, Gavel,   Loader2, Paperclip, FileText, CheckCircle2, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Message } from "@/components/message"; // Assuming Message component exists
 import { ThreeDotLoader } from "@/components/ThreeDotLoader"; // Assuming ThreeDotLoader exists
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea"; // Use Shadcn Textarea for consistency
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import type { WorkflowData } from "@/components/workflow"; // Assuming WorkflowData type exists
 
@@ -41,8 +35,19 @@ export default function Home() {
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
 
 	const [file, setFile] = useState<File | null>(null);
-	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [isUploading, setIsUploading] = useState(false);
+	const [uploadedFile, setUploadedFile] = useState<string | null>(null);
+	const [uploadSuccess, setUploadSuccess] = useState(false);
+	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [resource_id, setResource_id] = useState<string | null>(null);
+
+	  // Show upload success animation
+	  useEffect(() => {
+		if (uploadSuccess) {
+		  const timer = setTimeout(() => setUploadSuccess(false), 3000);
+		  return () => clearTimeout(timer);
+		}
+	  }, [uploadSuccess]);
 
 	const {
 		messages: apiMessages, // Source of truth from the API/hook
@@ -127,15 +132,96 @@ export default function Home() {
 		  const selectedFile = e.target.files[0];
 		  if (selectedFile.type === "application/pdf") {
 			setFile(selectedFile);
+			if (input.trim() === "") {
+			  setInput(`I've uploaded ${selectedFile.name}`);
+			}
 		  } else {
-			alert("Please upload a PDF file");
+			toast.error("Please upload a valid PDF file.");
 		  }
 		}
+	  };
+
+	  const handleFileUpload = async () => {
+		if (!file) return;
+	
+		setIsUploading(true);
+		const formData = new FormData();
+		formData.append("file", file);
+	
+		try {
+		  const response = await fetch("/api/ragchat", {
+			method: "POST",
+			body: formData,
+		  });
+	
+		  if (!response.ok) throw new Error("Failed to upload PDF");
+	
+		  const data = await response.json();
+		  localStorage.setItem("currentUserId", data.resource_id);
+		  setUploadedFile(file.name);
+		  setUploadSuccess(true);
+	
+		//   await appendToApi({
+		// 	content: `I've uploaded ${file.name}`,
+		// 	role: "user",
+		//   });
+		} catch (error) {
+		  console.error("Upload error:", error);
+		  alert("Error uploading file");
+		} finally {
+		  setIsUploading(false);
+		  setFile(null);
+		}
+	  };
+	
+	  useEffect(() => {
+		const id = localStorage.getItem("currentUserId");
+		setResource_id(id);
+	  }, []);
+	
+	
+	  const renderToolInvocation = (invocation: { toolName: string; args?: { question?: string } } | null) => {
+		if (!invocation) return null;
+	
+		if (invocation.toolName === "addResource") {
+		  return (
+			<div className="flex items-center gap-1 text-blue-500">
+			  <FileText className="h-3 w-3 animate-pulse" />
+			  <span>Adding resource to knowledge base...</span>
+			</div>
+		  );
+		}
+	
+		if (invocation.toolName === "getInformation") {
+		  return (
+			<div className="space-y-1">
+			  <div className="flex items-center gap-1">
+				<Loader2 className="h-3 w-3 animate-spin" />
+				<span>Searching for information...</span>
+			  </div>
+			  {invocation.args?.question && (
+				<div className="text-xs mt-1">
+				  Query: {invocation.args.question}
+				</div>
+			  )}
+			</div>
+		  );
+		}
+	
+		return (
+		  <div className="flex items-center gap-1">
+			<Loader2 className="h-3 w-3 animate-spin" />
+			<span>Processing your request...</span>
+		  </div>
+		);
 	  };
 
 	// Handle submitting the form (new messages or edits)
 	const handleCustomSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
+		if (file) {
+			await handleFileUpload();
+		  }
 		if (input.trim()) {
 			if (editingMessageId) {
 				// Find the index of the message being edited
@@ -443,9 +529,36 @@ export default function Home() {
 
 						<div ref={messagesEndRef} />
 					</ScrollArea>
+					        {/* File Upload Preview */}
+					{file && (
+					<div className="mb-2 flex gap-2 relative items-center mx-auto w-full max-w-4xl p-2  rounded-md border border-100 text-base bg-muted/80 rounded-lg border-none shadow-inner focus:ring-2 focus:ring-primary/30 transition">
+						<FileText className="h-4 w-4 text-blue-300" />
+						<span className="text-sm truncate flex-1">
+						{file.name}
+						</span>
+						<Button
+						variant="ghost"
+						size="sm"
+						onClick={() => setFile(null)}
+						className="h-6 w-6 p-0 text-gray-500 hover:text-gray-700 hover:bg-blue-100"
+						>
+						<X className="h-4 w-4" />
+						</Button>
+					</div>
+					)}
+
+					{/* Upload Success Animation */}
+					{uploadSuccess && (
+					<div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-green-100 text-green-800 px-4 py-2 rounded-full shadow-md flex items-center gap-2 animate-fade-in-out">
+						<CheckCircle2 className="h-4 w-4" />
+						<span className="text-sm font-medium">
+						Document uploaded successfully!
+						</span>
+					</div>
+					)}
 					{/* Input Area */}
 					<form
-						className="flex flex-col gap-2 relative items-center mx-auto w-full max-w-4xl px-3 py-3 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+						className="flex flex-col gap-2 relative items-center mx-auto w-full max-w-4xl py-3 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60"
 						onSubmit={handleCustomSubmit}
 					>
 						<div className="flex items-center w-full gap-2">
