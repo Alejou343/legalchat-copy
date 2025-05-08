@@ -529,9 +529,9 @@ export default function Home() {
 
 						<div ref={messagesEndRef} />
 					</ScrollArea>
-					        {/* File Upload Preview */}
+					{/* File Upload Preview */}
 					{file && (
-					<div className="mb-2 flex gap-2 relative items-center mx-auto w-full max-w-4xl p-2  rounded-md border border-100 text-base bg-muted/80 rounded-lg border-none shadow-inner focus:ring-2 focus:ring-primary/30 transition">
+					<div className="mb-2 flex gap-2 relative items-center mx-auto w-full max-w-4xl p-2  rounded-md border border-100 text-base bg-muted/80 rounded-lg border-none shadow focus:ring-2 focus:ring-primary/30 transition">
 						<FileText className="h-4 w-4 text-blue-300" />
 						<span className="text-sm truncate flex-1">
 						{file.name}
