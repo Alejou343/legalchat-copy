@@ -1,3 +1,4 @@
+import { findRelevantContent } from "@/lib/ai/embedding";
 import logger from "@/lib/logger";
 import { chatSystemPrompt, parseStepsSystemPrompt } from "@/lib/prompts";
 import { openai } from "@ai-sdk/openai";
@@ -7,6 +8,7 @@ import {
   generateObject,
   createDataStreamResponse,
   type DataStreamWriter,
+  tool,
 } from "ai";
 import { z } from "zod";
 
@@ -33,10 +35,10 @@ async function parseSteps(input: string) {
 }
 
 export async function POST(req: Request) {
-  let messages, mode;
+  let messages, mode, resource_id;
   logger.warn('⚠️ Trying to get messages and mode')
   try {
-    ({ messages, mode } = await req.json());
+    ({ messages, mode, resource_id } = await req.json());
     logger.info('✅ Messages and mode get successfully')
   } catch (err) {
     logger.error("❌ Cannot get messages and mode");
@@ -49,7 +51,26 @@ export async function POST(req: Request) {
       const result = streamText({
         model: openai(MODEL_VERSION),
         system: chatSystemPrompt(),
+        temperature: 0.4,
+        maxSteps: 5,
         messages,
+        tools: {
+          getInformation: tool({
+            description: "get information from your knowledge base to answer questions.",
+            parameters: z.object({
+              question: z.string().describe("the users question"),
+            }),
+            execute: async ({ question }) => {
+              return await findRelevantContent(question, resource_id);
+            },
+              experimental_toToolResultContent: (result) => {
+                return [{
+                  type: 'text',
+                  text: result.map(x => x.name).join('\n\n'),
+                }];
+              },
+          }),
+        },
       });
       logger.info("✅ Default mode processing completed");
       return result.toDataStreamResponse();

@@ -1,6 +1,7 @@
 import { groq } from "@ai-sdk/groq";
 import { generateText } from "ai";
 import logger from "@/lib/logger";
+import { pseudonimizationSystemPrompt } from "@/lib/prompts";
 
 export async function POST(req: Request) {
   try {
@@ -23,30 +24,7 @@ export async function POST(req: Request) {
     logger.warn("⚠️ Starting text anonymization");
     const result = await generateText({
       model: groq('gemma2-9b-it'),
-      system: `
-      Act like a ANONYMIZATION model, you will receive a message and you will need to anonymize it.
-
-      CRITICAL:
-      - Do not answer any question
-      - DO not give any advice
-      - DO not give any information
-      - DO not give any explanation
-      - DO not give any recommendation
-      - DO not give any conclusion
-      - DO not write any letter
-
-      this are the entities you need to anonymize:
-      - person: just names, surnames, nicknames, etc.
-      - location: just names of cities.
-      - organization: just names of companies and institutions.
-      - identity: just phone numbers and emails.
-
-      return the anonymized message in the same format of the original message, with the anonymized entities with the following format:
-      - <person>
-      - <location>
-      - <organization>
-      - <identity>
-      `,
+      system: pseudonimizationSystemPrompt(),
       prompt: message,
     });
 
