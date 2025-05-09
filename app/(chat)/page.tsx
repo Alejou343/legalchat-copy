@@ -4,7 +4,7 @@
 import { useChat, type Message as VercelMessage } from "@ai-sdk/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Scale, Wand2, Gavel,   Loader2, Paperclip, FileText, CheckCircle2, X } from "lucide-react";
+import { Scale, Wand2, Gavel, Upload, X } from "lucide-react"; // Added Upload and X icons
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Message } from "@/components/message"; // Assuming Message component exists
 import { ThreeDotLoader } from "@/components/ThreeDotLoader"; // Assuming ThreeDotLoader exists
@@ -14,13 +14,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 import type { WorkflowData } from "@/components/workflow"; // Assuming WorkflowData type exists
 
-import { cn } from "@/lib/utils"; // Assuming you have a utility for class names
+import { cn, readFileAsDataURL } from "@/lib/utils"; // Assuming you have a utility for class names
+import FileDisplay from "@/components/FileDisplay";
 
 // --- Main Chat Component ---
 export default function Home() {
 	const [chatMode, setChatMode] = useState<"default" | "workflow">("default");
 	const [displayMessages, setDisplayMessages] = useState<
 		Array<{
+			file?: { name: string; type: string; content: string | null; } | null;
 			id: string;
 			content: string;
 			role: "user" | "assistant";
@@ -29,6 +31,7 @@ export default function Home() {
 	>([]);
 	const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
 	const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+	const [selectedFile, setSelectedFile] = useState<File | null>(null); // State for selected file
 
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -67,6 +70,7 @@ export default function Home() {
 		onError: (error) => {
 			console.error("Chat Error:", error);
 			toast.error(error.message || "An error occurred. Please try again.");
+			setSelectedFile(null); // Clear selected file on error
 		},
 		onFinish: (message) => {
 			// remove markdown bold formatting
@@ -86,6 +90,7 @@ export default function Home() {
 					});
 				}
 			}
+			setSelectedFile(null); // Clear selected file after successful assistant response
 		},
 	});
 
@@ -95,6 +100,7 @@ export default function Home() {
 		(status === "submitted" && chatMode === "workflow");
 
 	// Auto-resize textarea
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
 	useEffect(() => {
 		if (textareaRef.current) {
 			textareaRef.current.style.height = "auto"; // Reset first
@@ -104,7 +110,7 @@ export default function Home() {
 			const maxHeight = 200;
 			textareaRef.current.style.height = `${Math.max(minHeight, Math.min(scrollHeight, maxHeight))}px`;
 		}
-	}, []); // Adjust height when input changes
+	}, [input]); // Adjust height when input changes
 
 	// Toggle between chat modes
 	const toggleChatMode = () => {
@@ -128,102 +134,34 @@ export default function Home() {
 		}
 	};
 
+	// Handle file selection
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		if (e.target.files?.[0]) {
-		  const selectedFile = e.target.files[0];
-		  if (selectedFile.type === "application/pdf") {
-			setFile(selectedFile);
-			if (input.trim() === "") {
-			  setInput(`I've uploaded ${selectedFile.name}`);
-			}
-		  } else {
-			toast.error("Please upload a valid PDF file.");
-		  }
+		const file = e.target.files?.[0] || null;
+		setSelectedFile(file);
+		// Clear the input value so the same file can be selected again
+		if (fileInputRef.current) {
+			fileInputRef.current.value = "";
 		}
-	  };
+	};
 
-	  const handleFileUpload = async () => {
-		if (!file) return;
-	
-		setIsUploading(true);
-		const formData = new FormData();
-		formData.append("file", file);
-	
-		try {
-		  const response = await fetch("/api/ragchat", {
-			method: "POST",
-			body: formData,
-		  });
-	
-		  if (!response.ok) throw new Error("Failed to upload PDF");
-	
-		  const data = await response.json();
-		  localStorage.setItem("currentUserId", data.resource_id);
-		  setUploadedFile(file.name);
-		  setUploadSuccess(true);
-	
-		//   await appendToApi({
-		// 	content: `I've uploaded ${file.name}`,
-		// 	role: "user",
-		//   });
-		} catch (error) {
-		  console.error("Upload error:", error);
-		  alert("Error uploading file");
-		} finally {
-		  setIsUploading(false);
-		  setFile(null);
+	// Trigger hidden file input click
+	const handleUploadButtonClick = () => {
+		fileInputRef.current?.click();
+	};
+
+	// Clear selected file
+	const handleClearFile = () => {
+		setSelectedFile(null);
+		if (fileInputRef.current) {
+			fileInputRef.current.value = ""; // Also clear the input value
 		}
-	  };
-	
-	  useEffect(() => {
-		const id = localStorage.getItem("currentUserId");
-		setResource_id(id);
-	  }, []);
-	
-	
-	  const renderToolInvocation = (invocation: { toolName: string; args?: { question?: string } } | null) => {
-		if (!invocation) return null;
-	
-		if (invocation.toolName === "addResource") {
-		  return (
-			<div className="flex items-center gap-1 text-blue-500">
-			  <FileText className="h-3 w-3 animate-pulse" />
-			  <span>Adding resource to knowledge base...</span>
-			</div>
-		  );
-		}
-	
-		if (invocation.toolName === "getInformation") {
-		  return (
-			<div className="space-y-1">
-			  <div className="flex items-center gap-1">
-				<Loader2 className="h-3 w-3 animate-spin" />
-				<span>Searching for information...</span>
-			  </div>
-			  {invocation.args?.question && (
-				<div className="text-xs mt-1">
-				  Query: {invocation.args.question}
-				</div>
-			  )}
-			</div>
-		  );
-		}
-	
-		return (
-		  <div className="flex items-center gap-1">
-			<Loader2 className="h-3 w-3 animate-spin" />
-			<span>Processing your request...</span>
-		  </div>
-		);
-	  };
+	};
 
 	// Handle submitting the form (new messages or edits)
 	const handleCustomSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
-		if (file) {
-			await handleFileUpload();
-		  }
-		if (input.trim()) {
+		if (input.trim() || selectedFile) {
+			// Allow submission if there's input or a selected file
 			if (editingMessageId) {
 				// Find the index of the message being edited
 				const messageIndex = displayMessages.findIndex(
@@ -240,6 +178,18 @@ export default function Home() {
 					// Update the edited message content
 					updatedDisplayMessages[messageIndex].content = input;
 
+					// Add the file info if a file is selected
+					if (selectedFile) {
+						updatedDisplayMessages[messageIndex].file = {
+							name: selectedFile.name,
+							type: selectedFile.type,
+							content: await readFileAsDataURL(selectedFile),
+						};
+					} else {
+						// Remove file info if no file is selected
+						updatedDisplayMessages[messageIndex].file = null;
+					}
+
 					setDisplayMessages(updatedDisplayMessages);
 
 					// Clear all API messages to avoid duplicates
@@ -254,17 +204,37 @@ export default function Home() {
 				})
 					.then((res) => res.json())
 					.then((data) => {
-						// console.log("data-----", data);
 						return data.message;
 					});
 
 				// Send edited message to the API (will be the only message)
-				appendToApi({
+				// Use appendToApi with potential file data in the 'data' field
+				const messageData: {
+					role: "user" | "assistant";
+					content: string;
+				} = {
 					role: "user",
 					content: `${pseudonimizedMessage}`,
-				});
+				};
 
-				// console.log("messages-----", apiMessages);
+				if (selectedFile) {
+					const fileContent = await readFileAsDataURL(selectedFile);
+					if (fileContent) {
+						// Include file info and content in the data field
+						const data = {
+							file: {
+								name: selectedFile.name,
+								type: selectedFile.type,
+								content: fileContent, // Sending as Data URL
+							},
+						};
+						appendToApi(messageData, { data });
+					}
+				} else {
+					// Send the edited message without file data
+					appendToApi(messageData);
+				}
+				
 
 				// Clear editing state and input
 				setEditingMessageId(null);
@@ -275,7 +245,7 @@ export default function Home() {
 				// Add normal message to display messages
 				setDisplayMessages((current) => [
 					...current,
-					{ id: messageId, content: input, role: "user", workflow: null },
+					{ id: messageId, content: input || "", role: "user", workflow: null }, // Ensure content is at least empty string
 				]);
 
 				const pseudonimizedMessage = await fetch("/api/pseudonimization", {
@@ -286,13 +256,36 @@ export default function Home() {
 					.then((data) => {
 						return data.message;
 					});
-				// Send message to the API
-				appendToApi({
+
+				// Use appendToApi with potential file data in the 'data' field
+				const messageData: {
+					role: "user" | "assistant";
+					content: string;
+				} = {
 					role: "user",
 					content: `${pseudonimizedMessage}`,
-				});
+				};
+
+				if (selectedFile) {
+					const fileContent = await readFileAsDataURL(selectedFile);
+					if (fileContent) {
+						// Include file info and content in the data field
+						const data = {
+							file: {
+								name: selectedFile.name,
+								type: selectedFile.type,
+								content: fileContent, // Sending as Data URL
+							},
+						};
+						appendToApi(messageData, { data });
+					}
+				} else {
+					// Send the edited message without file data
+					appendToApi(messageData);
+				}
 			}
 			setInput("");
+			setSelectedFile(null); // Clear selected file after submission
 		}
 	};
 
@@ -317,7 +310,7 @@ export default function Home() {
 		}
 	};
 
-	// Update display messages when API messages change
+		// Update display messages when API messages change
 	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
 	useEffect(() => {
 		const lastApiMessage = apiMessages[apiMessages.length - 1];
@@ -403,8 +396,9 @@ export default function Home() {
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault();
 			// Directly trigger the form submission logic
-			if (!isLoading && input.trim()) {
-				// Prevent submission while loading or if input is empty
+			if (!isLoading && (input.trim() || selectedFile)) {
+				// Allow submission if there's input or a selected file
+				// Prevent submission while loading and if input is empty and no file is selected
 				const form = e.currentTarget.form;
 				if (form) {
 					// Create a synthetic submit event if needed or call handler directly
@@ -450,10 +444,9 @@ export default function Home() {
 				<div className="flex flex-col justify-between w-full h-full bg-background rounded-lg shadow-xl">
 					{/* Welcome Messages with Smooth Transitions */}
 					{displayMessages.length === 0 && !isLoading && (
-							
-					<div className="relative h-full w-full">
-						{/* Default Mode Welcome */}
-						
+						<div className="relative h-full w-full">
+							{/* Default Mode Welcome */}
+
 							{/* Animated container for smooth fade/slide */}
 							<div
 								className={cn(
@@ -486,13 +479,12 @@ export default function Home() {
 								<Wand2 className="h-12 w-12 text-muted-foreground transition-colors duration-300" />
 								<h1 className="text-xl font-medium">Workflow Mode</h1>
 								<p className="text-muted-foreground">
-									Describe the legal task you need assistance with. The AI
-									will guide you through the steps.
+									Describe the legal task you need assistance with. The AI will
+									guide you through the steps.
 								</p>
 							</div>
-							
-					</div>
-						)}
+						</div>
+					)}
 
 					{/* Message Display Area */}
 					<ScrollArea
@@ -530,66 +522,45 @@ export default function Home() {
 
 						<div ref={messagesEndRef} />
 					</ScrollArea>
-					        {/* File Upload Preview */}
-					{file && (
-					<div className="mb-2 flex gap-2 relative items-center mx-auto w-full max-w-4xl p-2  rounded-md border border-100 text-base bg-muted/80 border-none shadow-inner focus:ring-2 focus:ring-primary/30 transition">
-						<FileText className="h-4 w-4 text-blue-300" />
-						<span className="text-sm truncate flex-1">
-						{file.name}
-						</span>
-						<Button
-						variant="ghost"
-						size="sm"
-						onClick={() => setFile(null)}
-						className="h-6 w-6 p-0 text-gray-500 hover:text-gray-700 hover:bg-blue-100"
-						>
-						<X className="h-4 w-4" />
-						</Button>
+					{/* Display selected file preview with clear button */}
+					<div className="w-full max-w-4xl mx-auto flex flex-col gap-4 relative">
+						{selectedFile && (
+							<FileDisplay 
+								selectedFile={selectedFile}
+								handleClearFile={handleClearFile}
+							/>
+						)}
 					</div>
-					)}
 
-					{/* Upload Success Animation */}
-					{uploadSuccess && (
-					<div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-green-100 text-green-800 px-4 py-2 rounded-full shadow-md flex items-center gap-2 animate-fade-in-out">
-						<CheckCircle2 className="h-4 w-4" />
-						<span className="text-sm font-medium">
-						Document uploaded successfully!
-						</span>
-					</div>
-					)}
 					{/* Input Area */}
 					<form
 						className="flex flex-col gap-2 relative items-center mx-auto w-full max-w-4xl py-3 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60"
 						onSubmit={handleCustomSubmit}
 					>
 						<div className="flex items-center w-full gap-2">
-
-							{/* PDF Upload Button */}
+							{/* Hidden file input */}
+							<input
+								type="file"
+								ref={fileInputRef}
+								className="hidden"
+								onChange={handleFileChange}
+							/>
+							{/* Upload File Button */}
 							<Tooltip>
 								<TooltipTrigger asChild>
-								<Button
-									type="button"
-									size="icon"
-									variant="secondary"
-									onClick={() => fileInputRef.current?.click()}
-									disabled={isLoading || isUploading}
-									className="h-10 w-10 flex-shrink-0 rounded-xl transition-colors"
-								>
-									{isUploading ? (
-									<Loader2 className="h-5 w-5 animate-spin" />
-									) : (
-									<Paperclip className="h-5 w-5" />
-									)}
-									<input
-									ref={fileInputRef}
-									type="file"
-									accept="application/pdf"
-									onChange={handleFileChange}
-									className="hidden"
-									/>
-								</Button>
+									<Button
+										type="button"
+										variant="ghost"
+										size="icon"
+										className="transition-colors"
+										onClick={handleUploadButtonClick}
+										disabled={isLoading || editingMessageId !== null} // Disable while loading or editing
+										aria-label="Upload File"
+									>
+										<Upload className="size-5" />
+									</Button>
 								</TooltipTrigger>
-								<TooltipContent side="top">Upload PDF Document</TooltipContent>
+								<TooltipContent side="top">Upload File</TooltipContent>
 							</Tooltip>
 
 							{/* Workflow Mode Toggle */}
@@ -605,7 +576,7 @@ export default function Home() {
 												"bg-primary text-primary-foreground",
 										)}
 										onClick={toggleChatMode}
-										disabled={isLoading}
+										disabled={isLoading || editingMessageId !== null} // Disable while loading or editing
 										aria-label="Toggle Workflow Mode"
 									>
 										<Wand2 className="size-5" />
@@ -625,13 +596,16 @@ export default function Home() {
 									className={cn(
 										"w-full min-h-[40px] max-h-[200px] resize-none pr-10 text-base bg-muted/60 rounded-lg border-none shadow-inner focus:ring-2 focus:ring-primary/30 transition",
 										editingMessageId && "ring-2 ring-primary/40",
+										selectedFile && "ring-2 ring-blue-500/40", // Indicate file is selected
 									)}
 									placeholder={
 										editingMessageId
 											? "Edit your message..."
-											: chatMode === "workflow"
-												? "Describe your legal task..."
-												: "Type your message..."
+											: selectedFile
+												? `Adding file: ${selectedFile.name}` // Indicate selected file
+												: chatMode === "workflow"
+													? "Describe your legal task..."
+													: "Type your message..."
 									}
 									value={input}
 									onChange={handleTextareaChange}
@@ -645,11 +619,11 @@ export default function Home() {
 									type="submit"
 									className={cn(
 										"absolute bottom-2 right-2 p-1 rounded-full bg-primary text-primary-foreground shadow transition-opacity",
-										(isLoading || !input.trim()) &&
+										(isLoading || (!input.trim() && !selectedFile)) && // Disable if loading and no input/file
 											"opacity-50 pointer-events-none",
 									)}
 									aria-label="Send Message"
-									disabled={isLoading || !input.trim()}
+									disabled={isLoading || (!input.trim() && !selectedFile)} // Disable if loading and no input/file
 								>
 									<Gavel size={18} />
 								</button>
@@ -666,6 +640,7 @@ export default function Home() {
 									onClick={() => {
 										setEditingMessageId(null);
 										setInput("");
+										setSelectedFile(null); // Clear file selection when canceling edit
 									}}
 								>
 									Cancel
