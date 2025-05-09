@@ -8,11 +8,8 @@ import {
   generateObject,
   createDataStreamResponse,
   type DataStreamWriter,
-<<<<<<< HEAD
-  tool,
-=======
   type Message,
->>>>>>> aa9f94c8ec912a2c82889c45c987e1765076fa2e
+  tool,
 } from "ai";
 import { z } from "zod";
 
@@ -39,12 +36,6 @@ async function parseSteps(input: string) {
 }
 
 export async function POST(req: Request) {
-<<<<<<< HEAD
-  let messages, mode, resource_id;
-  logger.warn('⚠️ Trying to get messages and mode')
-  try {
-    ({ messages, mode, resource_id } = await req.json());
-=======
   let messages: Message[];
   let mode: string;
   let data: {
@@ -59,7 +50,6 @@ export async function POST(req: Request) {
     ({ messages, mode, data } = await req.json());
     // TODO: handle file upload
     console.log(data);
->>>>>>> aa9f94c8ec912a2c82889c45c987e1765076fa2e
     logger.info('✅ Messages and mode get successfully')
   } catch (err) {
     logger.error("❌ Cannot get messages and mode");
@@ -82,7 +72,7 @@ export async function POST(req: Request) {
               question: z.string().describe("the users question"),
             }),
             execute: async ({ question }) => {
-              return await findRelevantContent(question, resource_id);
+              return await findRelevantContent(question, '');
             },
               experimental_toToolResultContent: (result) => {
                 return [{
