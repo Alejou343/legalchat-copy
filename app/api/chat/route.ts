@@ -7,6 +7,7 @@ import {
   generateObject,
   createDataStreamResponse,
   type DataStreamWriter,
+  type Message,
 } from "ai";
 import { z } from "zod";
 
@@ -33,10 +34,20 @@ async function parseSteps(input: string) {
 }
 
 export async function POST(req: Request) {
-  let messages, mode;
+  let messages: Message[];
+  let mode: string;
+  let data: {
+    file: {
+      name: string,
+      type: string,
+      content: string, // Sending as Data URL
+    },
+  }
   logger.warn('⚠️ Trying to get messages and mode')
   try {
-    ({ messages, mode } = await req.json());
+    ({ messages, mode, data } = await req.json());
+    // TODO: handle file upload
+    console.log(data);
     logger.info('✅ Messages and mode get successfully')
   } catch (err) {
     logger.error("❌ Cannot get messages and mode");
