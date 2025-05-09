@@ -80,15 +80,22 @@ export const findRelevantContent = async (
       .from(embeddings)
       .where(
         and(
-          gt(similarityExpr, 0.4),
-          eq(embeddings.resource_id, resource_id)
+          gt(similarityExpr, 0.4)
+          // eq(embeddings.resource_id, resource_id)
         )
       )
       .orderBy(() => desc(similarityExpr))
       .limit(4);
 
     if (similarGuides.length > 0) {
-      logger.info("✅ Contenido relevante encontrado");
+      logger.info(
+        `✅ Contenido relevante encontrado: ${JSON.stringify(
+          similarGuides.map((guide) => ({
+            name: guide.name.slice(0, 20),
+            similarity: guide.similarity,
+          }))
+        )}`
+      );
     } else {
       logger.error("❌ No se encontró contenido relevante");
     }

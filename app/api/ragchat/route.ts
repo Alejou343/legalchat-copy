@@ -1,8 +1,7 @@
-import logger from "@/lib/logger"; // Asegúrate de tener tu logger importado
+import logger from "@/lib/logger"; 
 import { createResource } from "@/lib/actions/resources";
 import { openai } from "@ai-sdk/openai";
-import { streamText, tool } from "ai";
-import { z } from "zod";
+import { streamText } from "ai";
 import type { NextRequest } from "next/server";
 import { findRelevantContent } from "@/lib/ai/embedding";
 
@@ -87,33 +86,43 @@ export async function POST(req: NextRequest) {
     const { messages, resource_id } = await req.json();
     logger.info("✅ Mensajes obtenidos del cuerpo de la solicitud");
 
+    const lastUserMessage = messages[messages.length - 1].content;
+    const relevantContent = await findRelevantContent(
+      lastUserMessage,
+      resource_id
+    );
+
+    const enhancedSystemPrompt = `
+    # Role
+    You are a context-aware assistant that provides accurate answers based strictly on retrieved knowledge.
+    
+    # Context
+    ${relevantContent.map((x) => `• ${x.name}`).join("\n")}
+    
+    # Instructions
+    1. FIRST analyze if the context contains relevant information for: "${lastUserMessage}"
+    2. IF RELEVANT INFORMATION EXISTS:
+       - Synthesize a clear answer
+       - Reference the context implicitly (e.g., "Based on the information...")
+    3. IF NO RELEVANT INFORMATION:
+       - Respond: "Sorry, I don't know based on the retrieved content."
+    4. FOR AMBIGUOUS QUESTIONS:
+       - Mention potential related content from context
+       - Ask clarifying questions
+    
+    # Important
+    Never invent information beyond what's in the context.
+    `;
+
     const result = streamText({
       model: openai("gpt-4o"),
-      system: `You are a helpful assistant. Use the content from tool calls to answer the user's question. 
-If the content does not contain enough information, say "Sorry, I don't know based on the retrieved content."`,
-      temperature: 0.2,
+      system: enhancedSystemPrompt,
+      temperature: 0.4,
       maxSteps: 5,
       messages,
-      tools: {
-        getInformation: tool({
-          description: "get information from your knowledge base to answer questions.",
-          parameters: z.object({
-            question: z.string().describe("the users question"),
-          }),
-          execute: async ({ question }) => {
-            return await findRelevantContent(question, resource_id);
-          },
-            experimental_toToolResultContent: (result) => {
-              return [{
-                type: 'text',
-                text: result.map(x => x.name).join('\n\n'),
-              }];
-            },
-        }),
-      },
     });
 
-    logger.info("✅ Flujo de chat iniciado con éxito");
+    logger.info("✅ Default mode processing completed");
     return result.toDataStreamResponse();
   } catch (error) {
     logger.error("❌ Error en el flujo de chat", error);

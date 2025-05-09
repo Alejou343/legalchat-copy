@@ -198,14 +198,14 @@ export default function Home() {
 				}
 
 				// Pseudonymize and send the edited message to the API
-				const pseudonimizedMessage = await fetch("/api/pseudonimization", {
-					method: "POST",
-					body: JSON.stringify({ message: input }),
-				})
-					.then((res) => res.json())
-					.then((data) => {
-						return data.message;
-					});
+				// const pseudonimizedMessage = await fetch("/api/pseudonimization", {
+				// 	method: "POST",
+				// 	body: JSON.stringify({ message: input }),
+				// })
+				// 	.then((res) => res.json())
+				// 	.then((data) => {
+				// 		return data.message;
+				// 	});
 
 				// Send edited message to the API (will be the only message)
 				// Use appendToApi with potential file data in the 'data' field
@@ -214,7 +214,7 @@ export default function Home() {
 					content: string;
 				} = {
 					role: "user",
-					content: `${pseudonimizedMessage}`,
+					content: `${input}`,
 				};
 
 				if (selectedFile) {
@@ -248,14 +248,14 @@ export default function Home() {
 					{ id: messageId, content: input || "", role: "user", workflow: null }, // Ensure content is at least empty string
 				]);
 
-				const pseudonimizedMessage = await fetch("/api/pseudonimization", {
-					method: "POST",
-					body: JSON.stringify({ message: input }),
-				})
-					.then((res) => res.json())
-					.then((data) => {
-						return data.message;
-					});
+				// const pseudonimizedMessage = await fetch("/api/pseudonimization", {
+				// 	method: "POST",
+				// 	body: JSON.stringify({ message: input }),
+				// })
+				// 	.then((res) => res.json())
+				// 	.then((data) => {
+				// 		return data.message;
+				// 	});
 
 				// Use appendToApi with potential file data in the 'data' field
 				const messageData: {
@@ -263,7 +263,7 @@ export default function Home() {
 					content: string;
 				} = {
 					role: "user",
-					content: `${pseudonimizedMessage}`,
+					content: `${input}`,
 				};
 
 				if (selectedFile) {
