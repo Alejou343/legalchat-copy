@@ -33,6 +33,22 @@ async function parseSteps(input: string) {
   }
 }
 
+async function parsePdf(content: string): Promise<string> {
+  try {
+    // Decode the base64 content to Buffer
+    const pdfContent = content.split(",")[1];
+    const buffer = Buffer.from(pdfContent, "base64");
+    // Use pdf-parse to extract text from the PDF
+    const { default: pdfParse } = await import("pdf-parse");
+    const data = await pdfParse(buffer);
+    // Return the text content of the PDF
+    return data.text;
+  } catch (error) {
+    logger.error("❌ Error parsing PDF content", error);
+    throw new Error("Failed to parse PDF content");
+  }
+}
+
 export async function POST(req: Request) {
   let messages: Message[];
   let mode: string;
@@ -46,8 +62,17 @@ export async function POST(req: Request) {
   logger.warn('⚠️ Trying to get messages and mode')
   try {
     ({ messages, mode, data } = await req.json());
-    // TODO: handle file upload
-    console.log(data);
+    if (data) {
+      logger.info("✅ File data received");
+      if(data.file) {
+        const { name, type, content } = data.file;
+        if (type === "application/pdf") {
+          logger.info(`✅ PDF file received: ${name}`);
+          const pdfText = await parsePdf(content);
+          console.log(`✅ PDF content extracted: ${pdfText}`);
+        }
+      }
+    }
     logger.info('✅ Messages and mode get successfully')
   } catch (err) {
     logger.error("❌ Cannot get messages and mode");
