@@ -218,6 +218,7 @@ export default function Home() {
 								content: fileContent, // Sending as Data URL
 							},
 						};
+						messageData.content = input;
 						appendToApi(messageData, { data });
 					}
 				} else {
@@ -267,6 +268,7 @@ export default function Home() {
 								content: fileContent, // Sending as Data URL
 							},
 						};
+						messageData.content = input;
 						appendToApi(messageData, { data });
 					}
 				} else {
@@ -303,6 +305,7 @@ export default function Home() {
 		// Update display messages when API messages change
 	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
 	useEffect(() => {
+		console.log(`Stream data: ${JSON.stringify(data)}`);
 		const lastApiMessage = apiMessages[apiMessages.length - 1];
 		if (
 			apiMessages.length > 0 &&
