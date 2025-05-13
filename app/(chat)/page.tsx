@@ -150,7 +150,7 @@ export default function Home() {
 	// Handle submitting the form (new messages or edits)
 	const handleCustomSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
-		if (input.trim() || selectedFile) {
+		if (input.trim()) {
 			// Allow submission if there's input or a selected file
 			if (editingMessageId) {
 				// Find the index of the message being edited
@@ -233,12 +233,6 @@ export default function Home() {
 				// Create a unique ID for the display message
 				const messageId = Date.now().toString();
 
-				// Add normal message to display messages
-				setDisplayMessages((current) => [
-					...current,
-					{ id: messageId, content: input || "", role: "user", workflow: null }, // Ensure content is at least empty string
-				]);
-
 				const pseudonimizedMessage = await fetch("/api/pseudonimization", {
 					method: "POST",
 					body: JSON.stringify({ message: input }),
@@ -269,9 +263,19 @@ export default function Home() {
 							},
 						};
 						messageData.content = input;
+						// Add file info to display messages
+						setDisplayMessages((current) => [
+							...current,
+							{ id: messageId, content: input || "", role: "user", workflow: null, file: data.file }, // Ensure content is at least empty string
+						]);
 						appendToApi(messageData, { data });
 					}
 				} else {
+					// Add normal message to display messages
+					setDisplayMessages((current) => [
+						...current,
+						{ id: messageId, content: input || "", role: "user", workflow: null }, // Ensure content is at least empty string
+					]);
 					// Send the edited message without file data
 					appendToApi(messageData);
 				}
@@ -305,7 +309,7 @@ export default function Home() {
 		// Update display messages when API messages change
 	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
 	useEffect(() => {
-		console.log(`Stream data: ${JSON.stringify(data)}`);
+		// console.log(`Stream data: ${JSON.stringify(data)}`);
 		const lastApiMessage = apiMessages[apiMessages.length - 1];
 		if (
 			apiMessages.length > 0 &&
@@ -434,7 +438,7 @@ export default function Home() {
 			<div className="flex flex-col justify-center items-center h-[calc(100vh-80px)] md:h-[calc(100vh-100px)] w-full">
 				{" "}
 				{/* Adjusted height */}
-				<div className="flex flex-col justify-between w-full h-full bg-background rounded-lg shadow-xl">
+				<div className="flex flex-col justify-between w-full h-full bg-background">
 					{/* Welcome Messages with Smooth Transitions */}
 					{displayMessages.length === 0 && !isLoading && (
 						<div className="relative h-full w-full">

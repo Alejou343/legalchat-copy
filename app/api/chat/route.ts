@@ -83,7 +83,6 @@ export async function POST(req: Request) {
 				);
 
 				const userPromptForFile = lastMessage.content;
-
 				const fileResult = streamText({
 					model: google("gemini-2.5-flash-preview-04-17"),
 					messages: [
