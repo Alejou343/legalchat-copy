@@ -389,6 +389,8 @@ export default function Home() {
 				return updatedMessages;
 			});
 		}
+
+		setResource_id(localStorage.getItem('currentUserId'))
 	}, [displayMessages]);
 
 	// Handle Enter key (submit) and Shift+Enter (new line)

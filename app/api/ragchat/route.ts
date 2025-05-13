@@ -100,12 +100,12 @@ export async function POST(req: NextRequest) {
     ${relevantContent.map((x) => `• ${x.name}`).join("\n")}
     
     # Instructions
-    1. FIRST analyze if the context contains relevant information for: "${lastUserMessage}"
+    1. FIRST analyze if the context contains relevant information for: "${lastUserMessage}" in same language
     2. IF RELEVANT INFORMATION EXISTS:
        - Synthesize a clear answer
-       - Reference the context implicitly (e.g., "Based on the information...")
+       - Reference the context implicitly
     3. IF NO RELEVANT INFORMATION:
-       - Respond: "Sorry, I don't know based on the retrieved content."
+       - Respond using your base knowledge
     4. FOR AMBIGUOUS QUESTIONS:
        - Mention potential related content from context
        - Ask clarifying questions

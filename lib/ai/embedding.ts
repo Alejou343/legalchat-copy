@@ -80,8 +80,8 @@ export const findRelevantContent = async (
       .from(embeddings)
       .where(
         and(
+          eq(embeddings.resource_id, resource_id),
           gt(similarityExpr, 0.4)
-          // eq(embeddings.resource_id, resource_id)
         )
       )
       .orderBy(() => desc(similarityExpr))

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useChat } from "@ai-sdk/react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ import {
   Paperclip,
   X,
   CheckCircle2,
+  Trash,
 } from "lucide-react";
 
 export default function Chat() {
@@ -47,18 +48,18 @@ export default function Chat() {
     body: { resource_id },
   });
 
-  // Scroll to bottom when messages change
+  // Cargar datos persistentes al iniciar
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    const storedFile = localStorage.getItem("uploaded_file");
+    const storedResourceId = localStorage.getItem("currentUserId");
 
-  // Show upload success animation
-  useEffect(() => {
-    if (uploadSuccess) {
-      const timer = setTimeout(() => setUploadSuccess(false), 3000);
-      return () => clearTimeout(timer);
+    if (storedFile) {
+      setUploadedFile(storedFile);
     }
-  }, [uploadSuccess]);
+    if (storedResourceId) {
+      setResource_id(storedResourceId);
+    }
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
@@ -88,7 +89,9 @@ export default function Chat() {
 
       const data = await response.json();
       localStorage.setItem("currentUserId", data.resource_id);
+      localStorage.setItem("uploaded_file", file.name);
       setUploadedFile(file.name);
+      setResource_id(data.resource_id);
       setUploadSuccess(true);
 
       await append({
@@ -104,11 +107,6 @@ export default function Chat() {
     }
   };
 
-  useEffect(() => {
-    const id = localStorage.getItem("currentUserId");
-    setResource_id(id);
-  }, []);
-
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -120,17 +118,11 @@ export default function Chat() {
       try {
         await handleSubmit(e);
 
-        // Verificar si el último mensaje tiene contenido después de 3 segundos
         setTimeout(() => {
           const lastMessage = messages[messages.length - 1];
-          if (
-            lastMessage &&
-            !lastMessage.content &&
-            !lastMessage.parts
-          ) {
+          if (lastMessage && !lastMessage.content && !lastMessage.parts) {
             append({
-              content:
-                "I'm having trouble generating a response. Please try again.",
+              content: "I'm having trouble generating a response. Please try again.",
               role: "assistant",
             });
           }
@@ -140,6 +132,49 @@ export default function Chat() {
       }
     }
   };
+
+  const handleDelete = async () => {
+    try {
+      const res = await fetch(`/api/embeddings/${resource_id}`, {
+        method: "DELETE",
+      });
+
+      const data = await res.json();
+
+      if (data.message === "embeddings deleted") {
+        localStorage.removeItem("currentUserId");
+        localStorage.removeItem("uploaded_file");
+        setResource_id(null);
+        setUploadedFile(null);
+      }
+    } catch (error) {
+      console.error("Error deleting embedding:", error);
+    }
+  };
+
+  // Limpiar todo al cerrar la ventana
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      localStorage.removeItem("currentUserId");
+      localStorage.removeItem("uploaded_file");
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
+  // Scroll al final de los mensajes
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Animación de éxito en upload
+  useEffect(() => {
+    if (uploadSuccess) {
+      const timer = setTimeout(() => setUploadSuccess(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [uploadSuccess]);
 
   const renderToolInvocation = (invocation: any) => {
     if (!invocation) return null;
@@ -189,10 +224,16 @@ export default function Chat() {
           {uploadedFile && (
             <Badge
               variant="outline"
-              className="flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700"
+              className="flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700"
             >
               <FileText className="h-3.5 w-3.5" />
               <span className="max-w-[150px] truncate">{uploadedFile}</span>
+              <button
+                onClick={handleDelete}
+                className="text-blue-700 hover:text-red-500"
+              >
+                <Trash className="h-3.5 w-3.5" />
+              </button>
             </Badge>
           )}
         </div>
