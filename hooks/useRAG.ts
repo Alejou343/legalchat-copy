@@ -117,7 +117,7 @@ export const useRAG = () => {
 
       const data = await res.json();
 
-      if (data.message === "embeddings deleted") {
+      if (data.message) {
         localStorage.removeItem("currentUserId");
         localStorage.removeItem("uploaded_file");
         setResource_id(null);
