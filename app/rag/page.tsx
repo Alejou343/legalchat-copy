@@ -1,409 +1,404 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useChat } from "@ai-sdk/react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import {
+  FileText,
+  Wand2,
+  Gavel,
+  Upload,
+  X,
+  Trash2,
+  Loader2,
+  Scale,
+} from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Message } from "@/components/message";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import {
-  Send,
-  Bot,
-  Loader2,
-  FileText,
-  Paperclip,
-  X,
-  CheckCircle2,
-  Trash,
-} from "lucide-react";
+import { useRAG } from "@/hooks/useRAG";
+import type { WorkflowData } from "@/components/workflow";
 
-export default function Chat() {
-  const [file, setFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<string | null>(null);
-  const [uploadSuccess, setUploadSuccess] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [resource_id, setResource_id] = useState<string | null>(null);
-
+export default function CombinedChat() {
+  // Hook RAG
   const {
-    messages,
+    file,
+    setFile,
+    isUploading,
+    uploadedFile,
+    uploadSuccess,
+    fileInputRef,
+    messagesEndRef,
+    messages: ragMessages,
     input,
     handleInputChange,
-    handleSubmit,
-    isLoading,
-    append,
+    isLoading: isRagLoading,
     error,
-  } = useChat({
-    api: "/api/ragchat",
-    body: { resource_id },
-  });
+    handleFileChange,
+    handleFileUpload,
+    handleFormSubmit: handleRagSubmit,
+    handleDelete,
+  } = useRAG();
 
-  // Cargar datos persistentes al iniciar
+    // Estados para workflow
+  const [chatMode, setChatMode] = useState<"default" | "workflow" | "rag">(
+    "default"
+  );
+  const [displayMessages, setDisplayMessages] = useState<
+    Array<{
+      file?: { name: string; type: string; content: string | null } | null;
+      id: string;
+      content: string;
+      role: "user" | "assistant";
+      workflow: WorkflowData | null;
+    }>
+  >([]);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // Auto-resize textarea
   useEffect(() => {
-    const storedFile = localStorage.getItem("uploaded_file");
-    const storedResourceId = localStorage.getItem("currentUserId");
-
-    if (storedFile) {
-      setUploadedFile(storedFile);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      const scrollHeight = textareaRef.current.scrollHeight;
+      const minHeight = 36;
+      const maxHeight = 200;
+      textareaRef.current.style.height = `${Math.max(
+        minHeight,
+        Math.min(scrollHeight, maxHeight)
+      )}px`;
     }
-    if (storedResourceId) {
-      setResource_id(storedResourceId);
-    }
-  }, []);
+  }, [input]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      const selectedFile = e.target.files[0];
-      if (selectedFile.type === "application/pdf") {
-        setFile(selectedFile);
-      } else {
-        alert("Please upload a PDF file");
-      }
-    }
-  };
-
-  const handleFileUpload = async () => {
-    if (!file) return;
-
-    setIsUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const response = await fetch("/api/ragchat", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error("Failed to upload PDF");
-
-      const data = await response.json();
-      localStorage.setItem("currentUserId", data.resource_id);
-      localStorage.setItem("uploaded_file", file.name);
-      setUploadedFile(file.name);
-      setResource_id(data.resource_id);
-      setUploadSuccess(true);
-
-      await append({
-        content: `I've uploaded ${file.name}`,
-        role: "user",
-      });
-    } catch (error) {
-      console.error("Upload error:", error);
-      alert("Error uploading file");
-    } finally {
-      setIsUploading(false);
-      setFile(null);
+  // Toggle between chat modes
+  const toggleChatMode = () => {
+    if (chatMode === "rag") {
+      setChatMode("default");
+    } else {
+      setChatMode(chatMode === "default" ? "workflow" : "default");
     }
   };
 
-  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const toggleRagMode = () => {
+    setChatMode(chatMode === "rag" ? "default" : "rag");
+  };
+
+  // Handle form submission based on mode
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (file) {
-      await handleFileUpload();
-    }
-
-    if (input.trim()) {
-      try {
-        await handleSubmit(e);
-
-        setTimeout(() => {
-          const lastMessage = messages[messages.length - 1];
-          if (lastMessage && !lastMessage.content && !lastMessage.parts) {
-            append({
-              content: "I'm having trouble generating a response. Please try again.",
-              role: "assistant",
-            });
-          }
-        }, 3000);
-      } catch (err) {
-        console.error("Error submitting message:", err);
+    if (chatMode === "rag") {
+      // Handle RAG submission
+      if (file) {
+        await handleFileUpload();
+      }
+      if (input.trim()) {
+        await handleRagSubmit(e);
+      }
+    } else {
+      // Handle workflow/default mode submission
+      if (input.trim()) {
+        // ... (tu lógica existente para workflow/default)
       }
     }
   };
 
-  const handleDelete = async () => {
-    try {
-      const res = await fetch(`/api/embeddings/${resource_id}`, {
-        method: "DELETE",
-      });
-
-      const data = await res.json();
-
-      if (data.message === "embeddings deleted") {
-        localStorage.removeItem("currentUserId");
-        localStorage.removeItem("uploaded_file");
-        setResource_id(null);
-        setUploadedFile(null);
-      }
-    } catch (error) {
-      console.error("Error deleting embedding:", error);
+  // Render messages based on mode
+  const renderMessages = () => {
+    if (chatMode === "rag") {
+      return ragMessages.map((message, index) => (
+        <Message
+          key={index}
+          message={{
+            id: index.toString(),
+            content: message.content,
+            role: message.role as "user" | "assistant",
+          }}
+          index={index}
+        />
+      ));
+    } else {
+      return displayMessages.map((message, index) => (
+        <Message
+          key={message.id}
+          message={message}
+          index={index}
+          //   onEdit={handleEditMessage}
+        />
+      ));
     }
-  };
-
-  // Limpiar todo al cerrar la ventana
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      localStorage.removeItem("currentUserId");
-      localStorage.removeItem("uploaded_file");
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, []);
-
-  // Scroll al final de los mensajes
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  // Animación de éxito en upload
-  useEffect(() => {
-    if (uploadSuccess) {
-      const timer = setTimeout(() => setUploadSuccess(false), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [uploadSuccess]);
-
-  const renderToolInvocation = (invocation: any) => {
-    if (!invocation) return null;
-
-    if (invocation.toolName === "addResource") {
-      return (
-        <div className="flex items-center gap-1 text-blue-500">
-          <FileText className="h-3 w-3 animate-pulse" />
-          <span>Adding resource to knowledge base...</span>
-        </div>
-      );
-    }
-
-    if (invocation.toolName === "getInformation") {
-      return (
-        <div className="space-y-1">
-          <div className="flex items-center gap-1">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            <span>Searching for information...</span>
-          </div>
-          {invocation.args?.question && (
-            <div className="text-xs mt-1">
-              Query: {invocation.args.question}
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    return (
-      <div className="flex items-center gap-1">
-        <Loader2 className="h-3 w-3 animate-spin" />
-        <span>Processing your request...</span>
-      </div>
-    );
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-4">
-      <Card className="w-full max-w-3xl h-[85vh] flex flex-col shadow-lg border-gray-200">
-        {/* Header */}
-        <div className="border-b p-4 flex items-center justify-between rounded-t-lg">
-          <div className="flex items-center gap-2">
-            <Bot className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-semibold">AI Assistant</h1>
-          </div>
-          {uploadedFile && (
-            <Badge
-              variant="outline"
-              className="flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700"
-            >
-              <FileText className="h-3.5 w-3.5" />
-              <span className="max-w-[150px] truncate">{uploadedFile}</span>
-              <button
-                onClick={handleDelete}
-                className="text-blue-700 hover:text-red-500"
-              >
-                <Trash className="h-3.5 w-3.5" />
-              </button>
-            </Badge>
+    <TooltipProvider delayDuration={100}>
+      <div className="flex flex-col justify-center items-center h-[calc(100vh-80px)] md:h-[calc(100vh-100px)] w-full">
+        <div className="flex flex-col justify-between w-full h-full bg-background rounded-lg shadow-xl">
+          {/* Welcome Messages */}
+          {chatMode === "rag" && ragMessages.length === 0 && !isRagLoading && (
+            <div className="relative h-full w-full flex flex-col gap-4 items-center justify-center px-4">
+              <FileText className="h-12 w-12 text-muted-foreground" />
+              <h1 className="text-xl font-medium">Document Analysis</h1>
+              <p className="text-center text-muted-foreground">
+                Upload a document and ask questions about its content
+              </p>
+            </div>
           )}
-        </div>
 
-        {/* Chat Area */}
-        <ScrollArea className="flex-grow p-4">
-          <div className="space-y-6">
-            {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-[50vh] text-center text-gray-500">
-                <div className="bg-primary/10 p-4 rounded-full mb-4">
-                  <Bot className="h-10 w-10 text-primary" />
-                </div>
-                <h2 className="text-lg font-medium mb-2">
-                  How can I help you today?
-                </h2>
-                <p className="text-sm max-w-md">
-                  Ask me anything or upload a document for analysis. I can
-                  answer general questions or help you understand document
-                  content.
+          {chatMode !== "rag" && displayMessages.length === 0 && (
+            <div className="relative h-full w-full">
+              <div
+                className={cn(
+                  "absolute inset-0 flex flex-col gap-4 items-center justify-center px-4 transition-all duration-500",
+                  chatMode === "default"
+                    ? "opacity-100 translate-y-0 pointer-events-auto"
+                    : "opacity-0 -translate-y-4 pointer-events-none"
+                )}
+              >
+                <Scale className="h-12 w-12" />
+                <h1 className="text-xl font-medium">Welcome</h1>
+                <p className="text-center text-muted-foreground">
+                  AI Legal chatbot by Alcock
                 </p>
               </div>
-            ) : (
-              messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={cn(
-                    "flex gap-3 w-full",
-                    message.role === "user" ? "justify-end" : "justify-start"
-                  )}
-                >
-                  {message.role !== "user" && (
-                    <Avatar className="h-8 w-8 mt-1">
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        AI
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-
-                  <div
-                    className={cn(
-                      "rounded-2xl px-4 py-3 max-w-[80%] shadow-sm",
-                      message.role === "user"
-                        ? "bg-primary text-primary-foreground rounded-tr-none"
-                        : "bg-gray-100 text-gray-800 rounded-tl-none"
-                    )}
-                  >
-                    {message.content ? (
-                      <div className="whitespace-pre-wrap text-sm">
-                        {message.content}
-                      </div>
-                    ) : message.toolInvocations?.[0] ? (
-                      <div className="text-sm italic text-gray-500">
-                        {renderToolInvocation(message.parts[0])}
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-sm italic text-gray-500">
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        Thinking...
-                      </div>
-                    )}
-                    {error &&
-                      message.id === messages[messages.length - 1]?.id && (
-                        <div className="text-xs text-red-500 mt-1">
-                          Error: {error.message}
-                        </div>
-                      )}
-                  </div>
-
-                  {message.role === "user" && (
-                    <Avatar className="h-8 w-8 mt-1">
-                      <AvatarFallback className="bg-blue-100 text-blue-600">
-                        You
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                </div>
-              ))
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-        </ScrollArea>
-
-        {/* File Upload Preview */}
-        {file && (
-          <div className="mx-4 mb-2 flex items-center gap-2 p-2 bg-blue-50 rounded-md border border-blue-100">
-            <FileText className="h-4 w-4 text-blue-500" />
-            <span className="text-sm truncate flex-1 text-blue-700">
-              {file.name}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setFile(null)}
-              className="h-6 w-6 p-0 text-gray-500 hover:text-gray-700 hover:bg-blue-100"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-
-        {/* Upload Success Animation */}
-        {uploadSuccess && (
-          <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-green-100 text-green-800 px-4 py-2 rounded-full shadow-md flex items-center gap-2 animate-fade-in-out">
-            <CheckCircle2 className="h-4 w-4" />
-            <span className="text-sm font-medium">
-              Document uploaded successfully!
-            </span>
-          </div>
-        )}
-
-        {/* Input Area */}
-        <div className="border-t p-4 rounded-b-lg">
-          <form onSubmit={handleFormSubmit} className="flex items-center gap-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isLoading || isUploading}
-                    className="h-10 w-10 rounded-full flex-shrink-0"
-                  >
-                    {isUploading ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <Paperclip className="h-5 w-5" />
-                    )}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="application/pdf"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top">Upload PDF Document</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-
-            <div className="relative flex-grow">
-              <Input
-                value={input}
-                onChange={handleInputChange}
-                placeholder={
-                  uploadedFile
-                    ? "Ask about the document or any other question..."
-                    : "Type a message..."
-                }
-                className="pr-12 py-6 rounded-full pl-4 border-gray-300 focus-visible:ring-primary"
-                disabled={isLoading || isUploading}
-              />
-              <Button
-                type="submit"
-                size="icon"
-                disabled={(!input.trim() && !file) || isLoading || isUploading}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 h-8 w-8 rounded-full"
-              >
-                {isLoading || isUploading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
+              <div
+                className={cn(
+                  "absolute inset-0 flex flex-col gap-4 items-center justify-center px-4 text-center transition-all duration-500",
+                  chatMode === "workflow"
+                    ? "opacity-100 translate-y-0 pointer-events-auto"
+                    : "opacity-0 translate-y-4 pointer-events-none"
                 )}
-              </Button>
+              >
+                <Wand2 className="h-12 w-12 text-muted-foreground" />
+                <h1 className="text-xl font-medium">Workflow Mode</h1>
+                <p className="text-muted-foreground">
+                  Describe the legal task you need assistance with.
+                </p>
+              </div>
             </div>
+          )}
+
+          {/* Message Display Area */}
+          <ScrollArea
+            ref={scrollAreaRef}
+            className="flex-grow p-4 overflow-y-auto"
+          >
+            <div className="max-w-4xl mx-auto flex flex-col gap-4">
+              {renderMessages()}
+
+              {/* Loading indicators */}
+              {isRagLoading && (
+                <div className="flex flex-row gap-2 items-start mt-4">
+                  <div className="size-[24px] flex justify-center items-center flex-shrink-0 text-zinc-500 mt-1">
+                    {chatMode === "rag" ? (
+                      <FileText className="h-5 w-5" />
+                    ) : (
+                      <Scale className="h-5 w-5" />
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1 text-zinc-500 bg-muted rounded-md px-3 py-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                </div>
+              )}
+            </div>
+            <div ref={messagesEndRef} />
+          </ScrollArea>
+
+          {/* File upload status */}
+          {chatMode === "rag" && (
+            <div className="w-full max-w-4xl mx-auto flex flex-col gap-4 relative">
+              {file && (
+                <div className="flex items-center justify-between p-2 bg-blue-50 rounded-md border border-blue-200 mx-4">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm text-blue-800">{file.name}</span>
+                  </div>
+                  <button
+                    onClick={() => setFile(null)}
+                    className="p-1 rounded-full hover:bg-blue-100 text-blue-500"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
+              {uploadedFile && (
+                <div className="flex items-center justify-between p-2 bg-green-50 rounded-md border border-green-200 mx-4">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-green-500" />
+                    <span className="text-sm text-green-800">
+                      {uploadedFile}
+                    </span>
+                    {uploadSuccess && (
+                      <span className="text-xs text-green-600 animate-pulse">
+                        Uploaded successfully!
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleDelete}
+                    className="p-1 rounded-full hover:bg-green-100 text-green-500"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Input Area */}
+          <form
+            className="flex flex-col gap-2 relative items-center mx-auto w-full max-w-4xl py-3 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+            onSubmit={handleSubmit}
+          >
+            <div className="flex items-center w-full gap-2">
+              {/* Mode toggle buttons */}
+              <div className="flex gap-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant={chatMode === "workflow" ? "default" : "ghost"}
+                      size="icon"
+                      onClick={toggleChatMode}
+                      disabled={isRagLoading || isUploading}
+                    >
+                      <Wand2 className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Workflow Mode</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant={chatMode === "rag" ? "default" : "ghost"}
+                      size="icon"
+                      onClick={toggleRagMode}
+                      disabled={isUploading}
+                    >
+                      <FileText className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Document Analysis</TooltipContent>
+                </Tooltip>
+              </div>
+
+              {/* File upload for RAG mode */}
+              {chatMode === "rag" && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant={file ? "default" : "ghost"}
+                      size="icon"
+                      className={file ? "bg-blue-500 text-white" : ""}
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isRagLoading || isUploading}
+                    >
+                      {isUploading ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Upload className="h-5 w-5" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Upload PDF</TooltipContent>
+                </Tooltip>
+              )}
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={handleFileChange}
+                accept=".pdf"
+              />
+
+              {/* Message Input */}
+              <div className="flex-grow relative">
+                <Textarea
+                  ref={textareaRef}
+                  className={cn(
+                    "w-full min-h-[40px] max-h-[200px] resize-none pr-10 text-base bg-muted/60 rounded-lg border-none shadow-inner focus:ring-2 focus:ring-primary/30 transition",
+                    file && "ring-2 ring-blue-500/40",
+                    editingMessageId && "ring-2 ring-primary/40"
+                  )}
+                  placeholder={
+                    chatMode === "rag"
+                      ? file
+                        ? `Ask about ${file.name}...`
+                        : uploadedFile
+                        ? `Ask about ${uploadedFile}...`
+                        : "Upload a PDF first..."
+                      : editingMessageId
+                      ? "Edit your message..."
+                      : chatMode === "workflow"
+                      ? "Describe your legal task..."
+                      : "Type your message..."
+                  }
+                  value={input}
+                  onChange={handleInputChange}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (!isRagLoading && (input.trim() || file)) {
+                        handleSubmit(
+                          e as unknown as React.FormEvent<HTMLFormElement>
+                        );
+                      }
+                    }
+                  }}
+                  rows={1}
+                  disabled={
+                    isRagLoading ||
+                    isUploading ||
+                    (chatMode === "rag" && !uploadedFile && !file)
+                  }
+                  autoFocus
+                />
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  className={cn(
+                    "absolute bottom-2 right-2 p-1 rounded-full bg-primary text-primary-foreground shadow transition-opacity",
+                    (isRagLoading || isUploading || (!input.trim() && !file)) &&
+                      "opacity-50 pointer-events-none"
+                  )}
+                  disabled={
+                    isRagLoading || isUploading || (!input.trim() && !file)
+                  }
+                >
+                  {chatMode === "rag" ? (
+                    <FileText size={18} />
+                  ) : (
+                    <Gavel size={18} />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {error && (
+              <div className="text-sm text-red-500 px-2">
+                {error.message || "An error occurred. Please try again."}
+              </div>
+            )}
           </form>
         </div>
-      </Card>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }

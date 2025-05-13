@@ -7,7 +7,7 @@ import { WorkflowTimeline } from "./workflow-timeline";
 import type { WorkflowData } from "./workflow";
 
 interface MessageProps {
-	message: {id: string; content: string; role: 'user' | 'assistant', workflow: WorkflowData | null};
+	message: {id: string; content: string; role: 'user' | 'assistant', workflow?: WorkflowData | null};
 	index: number;
 	onEdit?: (id: string) => void;
 }
