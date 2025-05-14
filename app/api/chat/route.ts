@@ -3,19 +3,20 @@ import logger from "@/lib/logger";
 import { chatSystemPrompt, parseStepsSystemPrompt } from "@/lib/prompts";
 import { createResource } from "@/lib/actions/resources";
 import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import {
-  streamText,
-  generateText,
-  generateObject,
-  createDataStreamResponse,
-  type DataStreamWriter,
-  type Message,
-  tool,
+	streamText,
+	generateText, // Retained as it's used by parseSteps
+	generateObject,
+	createDataStreamResponse,
+	type DataStreamWriter,
+	type Message,
+	type CreateMessage,
 } from "ai";
 import { z } from "zod";
 import type { NextRequest } from "next/server";
 
-const MODEL_VERSION = "gpt-4o";
+const MODEL_VERSION = "gpt-4o"; // For OpenAI
 
 // Función para extraer texto de un PDF
 async function extractTextWithPdfParse(buffer: Buffer): Promise<string> {
@@ -37,23 +38,23 @@ async function extractTextWithPdfParse(buffer: Buffer): Promise<string> {
 
 // Función para parsear pasos del workflow
 async function parseSteps(input: string) {
-  try {
-    logger.warn("⚠️ Trying to parse steps");
-    const { object } = await generateObject({
-      model: openai(MODEL_VERSION),
-      schema: z.object({
-        steps: z.array(z.string()),
-      }),
-      system: parseStepsSystemPrompt(),
-      prompt: input,
-    });
+	try {
+		logger.warn("⚠️ Trying to parse steps");
+		const { object } = await generateObject({
+			model: openai(MODEL_VERSION), // Uses OpenAI for parsing steps
+			schema: z.object({
+				steps: z.array(z.string()),
+			}),
+			system: parseStepsSystemPrompt(),
+			prompt: input,
+		});
 
-    logger.info("✅ Parse steps completed");
-    return object;
-  } catch (err) {
-    logger.error("❌ Cannot parse steps");
-    return { steps: [] };
-  }
+		logger.info("✅ Parse steps completed");
+		return object;
+	} catch (err) {
+		logger.error("❌ Cannot parse steps", err);
+		return { steps: [] };
+	}
 }
 
 export async function POST(req: NextRequest) {
