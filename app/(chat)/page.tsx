@@ -524,14 +524,31 @@ export default function Home() {
 
 						<div ref={messagesEndRef} />
 					</ScrollArea>
-					{/* Display selected file preview with clear button */}
-					<div className="w-full max-w-4xl mx-auto flex flex-col gap-4 relative">
-						{selectedFile && (
-							<FileDisplay 
-								selectedFile={selectedFile}
-								handleClearFile={handleClearFile}
-							/>
-						)}
+					{/* File Upload Preview */}
+					{file && (
+					<div className="mb-2 flex gap-2 relative items-center mx-auto w-full max-w-4xl p-2  rounded-md border border-100 text-base bg-muted/80 rounded-lg border-none shadow focus:ring-2 focus:ring-primary/30 transition">
+						<FileText className="h-4 w-4 text-blue-300" />
+						<span className="text-sm truncate flex-1">
+						{file.name}
+						</span>
+						<Button
+						variant="ghost"
+						size="sm"
+						onClick={() => setFile(null)}
+						className="h-6 w-6 p-0 text-gray-500 hover:text-gray-700 hover:bg-blue-100"
+						>
+						<X className="h-4 w-4" />
+						</Button>
+					</div>
+					)}
+
+					{/* Upload Success Animation */}
+					{uploadSuccess && (
+					<div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-green-100 text-green-800 px-4 py-2 rounded-full shadow-md flex items-center gap-2 animate-fade-in-out">
+						<CheckCircle2 className="h-4 w-4" />
+						<span className="text-sm font-medium">
+						Document uploaded successfully!
+						</span>
 					</div>
 
 					{/* Input Area */}
