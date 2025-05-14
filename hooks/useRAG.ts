@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useChat } from "@ai-sdk/react";
+import { WorkflowData } from "@/components/workflow";
 
 export const useRAG = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -9,6 +10,9 @@ export const useRAG = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [resource_id, setResource_id] = useState<string | null>(null);
+  const [chatMode, setChatMode] = useState<"default" | "workflow" | "rag">(
+    "default"
+  );
 
   const {
     messages,
@@ -19,8 +23,11 @@ export const useRAG = () => {
     append,
     error,
   } = useChat({
-    api: "/api/ragchat",
-    body: { resource_id },
+    api: "/api/ragchat", // Mismo endpoint para todos los modos
+    body: {
+      chatMode, // Enviamos el modo actual
+      resource_id, // Solo relevante para modo RAG
+    },
   });
 
   // Cargar datos persistentes al iniciar
@@ -47,15 +54,21 @@ export const useRAG = () => {
     }
   };
 
+  const toggleChatMode = (mode: "default" | "workflow" | "rag") => {
+    setChatMode((prevMode) => (prevMode === mode ? "default" : mode));
+  };
+
   const handleFileUpload = async () => {
     if (!file) return;
 
     setIsUploading(true);
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("chatMode", "rag"); // Especificamos que es un upload para RAG
 
     try {
-      const response = await fetch("/api/ragchat", {
+      const response = await fetch("/api/chat", {
+        // Mismo endpoint
         method: "POST",
         body: formData,
       });
@@ -85,24 +98,13 @@ export const useRAG = () => {
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (file) {
+    if (chatMode === "rag" && file) {
       await handleFileUpload();
     }
 
     if (input.trim()) {
       try {
         await handleSubmit(e);
-
-        setTimeout(() => {
-          const lastMessage = messages[messages.length - 1];
-          if (lastMessage && !lastMessage.content && !lastMessage.parts) {
-            append({
-              content:
-                "I'm having trouble generating a response. Please try again.",
-              role: "assistant",
-            });
-          }
-        }, 3000);
       } catch (err) {
         console.error("Error submitting message:", err);
       }
@@ -156,25 +158,21 @@ export const useRAG = () => {
     file,
     setFile,
     isUploading,
-    setIsUploading,
     uploadedFile,
-    setUploadedFile,
     uploadSuccess,
-    setUploadSuccess,
     fileInputRef,
     messagesEndRef,
     resource_id,
-    setResource_id,
     messages,
     input,
     handleInputChange,
-    handleSubmit,
+    handleSubmit: handleFormSubmit,
     isLoading,
-    append,
     error,
     handleFileChange,
     handleFileUpload,
-    handleFormSubmit,
     handleDelete,
+    chatMode,
+    toggleChatMode,
   };
 };

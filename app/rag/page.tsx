@@ -28,7 +28,6 @@ import { useRAG } from "@/hooks/useRAG";
 import type { WorkflowData } from "@/components/workflow";
 
 export default function CombinedChat() {
-  // Hook RAG
   const {
     file,
     setFile,
@@ -37,35 +36,19 @@ export default function CombinedChat() {
     uploadSuccess,
     fileInputRef,
     messagesEndRef,
-    messages: ragMessages,
+    messages,
     input,
     handleInputChange,
-    isLoading: isRagLoading,
+    isLoading,
     error,
     handleFileChange,
-    handleFileUpload,
-    handleFormSubmit: handleRagSubmit,
+    handleSubmit,
     handleDelete,
+    chatMode,
+    toggleChatMode,
   } = useRAG();
 
-    // Estados para workflow
-  const [chatMode, setChatMode] = useState<"default" | "workflow" | "rag">(
-    "default"
-  );
-  const [displayMessages, setDisplayMessages] = useState<
-    Array<{
-      file?: { name: string; type: string; content: string | null } | null;
-      id: string;
-      content: string;
-      role: "user" | "assistant";
-      workflow: WorkflowData | null;
-    }>
-  >([]);
-  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -81,123 +64,57 @@ export default function CombinedChat() {
     }
   }, [input]);
 
-  // Toggle between chat modes
-  const toggleChatMode = () => {
-    if (chatMode === "rag") {
-      setChatMode("default");
-    } else {
-      setChatMode(chatMode === "default" ? "workflow" : "default");
-    }
-  };
-
-  const toggleRagMode = () => {
-    setChatMode(chatMode === "rag" ? "default" : "rag");
-  };
-
-  // Handle form submission based on mode
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    if (chatMode === "rag") {
-      // Handle RAG submission
-      if (file) {
-        await handleFileUpload();
-      }
-      if (input.trim()) {
-        await handleRagSubmit(e);
-      }
-    } else {
-      // Handle workflow/default mode submission
-      if (input.trim()) {
-        // ... (tu lógica existente para workflow/default)
-      }
-    }
-  };
-
-  // Render messages based on mode
-  const renderMessages = () => {
-    if (chatMode === "rag") {
-      return ragMessages.map((message, index) => (
-        <Message
-          key={index}
-          message={{
-            id: index.toString(),
-            content: message.content,
-            role: message.role as "user" | "assistant",
-          }}
-          index={index}
-        />
-      ));
-    } else {
-      return displayMessages.map((message, index) => (
-        <Message
-          key={message.id}
-          message={message}
-          index={index}
-          //   onEdit={handleEditMessage}
-        />
-      ));
-    }
-  };
-
   return (
     <TooltipProvider delayDuration={100}>
       <div className="flex flex-col justify-center items-center h-[calc(100vh-80px)] md:h-[calc(100vh-100px)] w-full">
         <div className="flex flex-col justify-between w-full h-full bg-background rounded-lg shadow-xl">
           {/* Welcome Messages */}
-          {chatMode === "rag" && ragMessages.length === 0 && !isRagLoading && (
+          {messages.length === 0 && !isLoading && (
             <div className="relative h-full w-full flex flex-col gap-4 items-center justify-center px-4">
-              <FileText className="h-12 w-12 text-muted-foreground" />
-              <h1 className="text-xl font-medium">Document Analysis</h1>
-              <p className="text-center text-muted-foreground">
-                Upload a document and ask questions about its content
-              </p>
-            </div>
-          )}
-
-          {chatMode !== "rag" && displayMessages.length === 0 && (
-            <div className="relative h-full w-full">
-              <div
-                className={cn(
-                  "absolute inset-0 flex flex-col gap-4 items-center justify-center px-4 transition-all duration-500",
-                  chatMode === "default"
-                    ? "opacity-100 translate-y-0 pointer-events-auto"
-                    : "opacity-0 -translate-y-4 pointer-events-none"
-                )}
-              >
-                <Scale className="h-12 w-12" />
-                <h1 className="text-xl font-medium">Welcome</h1>
-                <p className="text-center text-muted-foreground">
-                  AI Legal chatbot by Alcock
-                </p>
-              </div>
-              <div
-                className={cn(
-                  "absolute inset-0 flex flex-col gap-4 items-center justify-center px-4 text-center transition-all duration-500",
-                  chatMode === "workflow"
-                    ? "opacity-100 translate-y-0 pointer-events-auto"
-                    : "opacity-0 translate-y-4 pointer-events-none"
-                )}
-              >
-                <Wand2 className="h-12 w-12 text-muted-foreground" />
-                <h1 className="text-xl font-medium">Workflow Mode</h1>
-                <p className="text-muted-foreground">
-                  Describe the legal task you need assistance with.
-                </p>
-              </div>
+              {chatMode === "rag" ? (
+                <>
+                  <FileText className="h-12 w-12 text-muted-foreground" />
+                  <h1 className="text-xl font-medium">Document Analysis</h1>
+                  <p className="text-center text-muted-foreground">
+                    Upload a document and ask questions about its content
+                  </p>
+                </>
+              ) : chatMode === "workflow" ? (
+                <>
+                  <Wand2 className="h-12 w-12 text-muted-foreground" />
+                  <h1 className="text-xl font-medium">Workflow Mode</h1>
+                  <p className="text-muted-foreground">
+                    Describe the legal task you need assistance with.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Scale className="h-12 w-12" />
+                  <h1 className="text-xl font-medium">Welcome</h1>
+                  <p className="text-center text-muted-foreground">
+                    AI Legal chatbot by Alcock
+                  </p>
+                </>
+              )}
             </div>
           )}
 
           {/* Message Display Area */}
-          <ScrollArea
-            ref={scrollAreaRef}
-            className="flex-grow p-4 overflow-y-auto"
-          >
+          <ScrollArea className="flex-grow p-4 overflow-y-auto">
             <div className="max-w-4xl mx-auto flex flex-col gap-4">
-              {renderMessages()}
+              {messages.map((message, index) => (
+                <Message
+                  key={index}
+                  message={{
+                    id: index.toString(),
+                    content: message.content,
+                    role: message.role as "user" | "assistant",
+                  }}
+                  index={index}
+                />
+              ))}
 
-              {/* Loading indicators */}
-              {isRagLoading && (
+              {isLoading && (
                 <div className="flex flex-row gap-2 items-start mt-4">
                   <div className="size-[24px] flex justify-center items-center flex-shrink-0 text-zinc-500 mt-1">
                     {chatMode === "rag" ? (
@@ -215,7 +132,7 @@ export default function CombinedChat() {
             <div ref={messagesEndRef} />
           </ScrollArea>
 
-          {/* File upload status */}
+          {/* File upload status (solo para modo RAG) */}
           {chatMode === "rag" && (
             <div className="w-full max-w-4xl mx-auto flex flex-col gap-4 relative">
               {file && (
@@ -271,8 +188,8 @@ export default function CombinedChat() {
                       type="button"
                       variant={chatMode === "workflow" ? "default" : "ghost"}
                       size="icon"
-                      onClick={toggleChatMode}
-                      disabled={isRagLoading || isUploading}
+                      onClick={() => toggleChatMode("workflow")}
+                      disabled={isLoading || isUploading}
                     >
                       <Wand2 className="h-5 w-5" />
                     </Button>
@@ -286,7 +203,7 @@ export default function CombinedChat() {
                       type="button"
                       variant={chatMode === "rag" ? "default" : "ghost"}
                       size="icon"
-                      onClick={toggleRagMode}
+                      onClick={() => toggleChatMode("rag")}
                       disabled={isUploading}
                     >
                       <FileText className="h-5 w-5" />
@@ -306,7 +223,7 @@ export default function CombinedChat() {
                       size="icon"
                       className={file ? "bg-blue-500 text-white" : ""}
                       onClick={() => fileInputRef.current?.click()}
-                      disabled={isRagLoading || isUploading}
+                      disabled={isLoading || isUploading}
                     >
                       {isUploading ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
@@ -333,8 +250,7 @@ export default function CombinedChat() {
                   ref={textareaRef}
                   className={cn(
                     "w-full min-h-[40px] max-h-[200px] resize-none pr-10 text-base bg-muted/60 rounded-lg border-none shadow-inner focus:ring-2 focus:ring-primary/30 transition",
-                    file && "ring-2 ring-blue-500/40",
-                    editingMessageId && "ring-2 ring-primary/40"
+                    file && "ring-2 ring-blue-500/40"
                   )}
                   placeholder={
                     chatMode === "rag"
@@ -343,8 +259,6 @@ export default function CombinedChat() {
                         : uploadedFile
                         ? `Ask about ${uploadedFile}...`
                         : "Upload a PDF first..."
-                      : editingMessageId
-                      ? "Edit your message..."
                       : chatMode === "workflow"
                       ? "Describe your legal task..."
                       : "Type your message..."
@@ -354,16 +268,14 @@ export default function CombinedChat() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
-                      if (!isRagLoading && (input.trim() || file)) {
-                        handleSubmit(
-                          e as unknown as React.FormEvent<HTMLFormElement>
-                        );
+                      if (!isLoading && (input.trim() || file)) {
+                        handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
                       }
                     }
                   }}
                   rows={1}
                   disabled={
-                    isRagLoading ||
+                    isLoading ||
                     isUploading ||
                     (chatMode === "rag" && !uploadedFile && !file)
                   }
@@ -375,11 +287,11 @@ export default function CombinedChat() {
                   type="submit"
                   className={cn(
                     "absolute bottom-2 right-2 p-1 rounded-full bg-primary text-primary-foreground shadow transition-opacity",
-                    (isRagLoading || isUploading || (!input.trim() && !file)) &&
+                    (isLoading || isUploading || (!input.trim() && !file)) &&
                       "opacity-50 pointer-events-none"
                   )}
                   disabled={
-                    isRagLoading || isUploading || (!input.trim() && !file)
+                    isLoading || isUploading || (!input.trim() && !file)
                   }
                 >
                   {chatMode === "rag" ? (

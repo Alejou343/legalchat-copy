@@ -1,134 +1,46 @@
-import logger from "@/lib/logger"; 
-import { createResource } from "@/lib/actions/resources";
-import { openai } from "@ai-sdk/openai";
-import { streamText } from "ai";
+import logger from "@/lib/logger";
+import { handlePdfUpload } from "@/lib/handlers/pdf-upload-handler";
+// import { handleRagChatRequest } from "@/lib/handlers/rag-chat-handler";
+// import { handleWorkflowChatRequest } from "@/lib/handlers/workflow-chat-handler";
+// import { handleDefaultChatRequest } from "@/lib/handlers/default-chat-handler";
 import type { NextRequest } from "next/server";
-import { findRelevantContent } from "@/lib/ai/embedding";
-
-async function extractTextWithPdfParse(buffer: Buffer): Promise<string> {
-  try {
-    logger.warn("⚠️ Extrayendo texto del PDF");
-    const { default: pdfParse } = await import("pdf-parse");
-    const data = await pdfParse(buffer);
-    logger.info("✅ Texto extraído exitosamente del PDF");
-    return data.text;
-  } catch (error) {
-    logger.error("❌ Error al extraer texto del PDF", error);
-    throw new Error(
-      `Error extrayendo texto del PDF: ${
-        error instanceof Error ? error.message : String(error)
-      }`
-    );
-  }
-}
+import { handleChatRequest } from "@/lib/handlers/chat-request-handler";
 
 export async function POST(req: NextRequest) {
   const contentType = req.headers.get("content-type") || "";
   logger.warn("⚠️ Procesando solicitud POST");
 
   if (contentType.includes("multipart/form-data")) {
-    logger.warn("⚠️ Detectado archivo PDF en multipart/form-data");
-    try {
-      const formData = await req.formData();
-      const file = formData.get("file") as File;
-
-      if (!file || file.type !== "application/pdf") {
-        logger.error("❌ Archivo PDF inválido o faltante");
-        return new Response(
-          JSON.stringify({ error: "Archivo PDF inválido o faltante" }),
-          { status: 400, headers: { "Content-Type": "application/json" } }
-        );
-      }
-
-      const MAX_SIZE = 10 * 1024 * 1024; // 10MB
-      if (file.size > MAX_SIZE) {
-        logger.error("❌ Archivo PDF excede tamaño permitido (10MB)");
-        return new Response(
-          JSON.stringify({
-            error: "El archivo PDF es demasiado grande (máximo 10MB)",
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } }
-        );
-      }
-
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const content = await extractTextWithPdfParse(buffer);
-      const processedContent = content.replace(/\s+/g, " ").trim();
-      logger.info("✅ Texto del PDF procesado correctamente");
-
-      const resourceResponse = await createResource({
-        content: processedContent,
-      });
-      const { resource_id } = resourceResponse;
-      logger.info("✅ Recurso creado en la base de conocimiento");
-
-      return new Response(
-        JSON.stringify({
-          message: "Documento procesado exitosamente",
-          filename: file.name,
-          contentLength: processedContent.length,
-          resource_id: resource_id,
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    } catch (error) {
-      logger.error("❌ Error procesando archivo PDF", error);
-      return new Response(
-        JSON.stringify({ error: "Error al procesar el documento PDF" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
-      );
-    }
+    return handlePdfUpload(req);
   }
 
-  // Flujo normal de chat
   try {
-    logger.warn("⚠️ Procesando solicitud de chat");
-    const { messages, resource_id } = await req.json();
-    logger.info("✅ Mensajes obtenidos del cuerpo de la solicitud");
+    const { messages, resource_id, chatMode = "default" } = await req.json();
 
-    const lastUserMessage = messages[messages.length - 1].content;
-    const relevantContent = await findRelevantContent(
-      lastUserMessage,
-      resource_id
-    );
+    logger.info(`💬 Modo de chat recibido: "${chatMode}"`);
 
-    const enhancedSystemPrompt = `
-    # Role
-    You are a context-aware assistant that provides accurate answers based strictly on retrieved knowledge.
-    
-    # Context
-    ${relevantContent.map((x) => `• ${x.name}`).join("\n")}
-    
-    # Instructions
-    1. FIRST analyze if the context contains relevant information for: "${lastUserMessage}" in same language
-    2. IF RELEVANT INFORMATION EXISTS:
-       - Synthesize a clear answer
-       - Reference the context implicitly
-    3. IF NO RELEVANT INFORMATION:
-       - Respond using your base knowledge
-    4. FOR AMBIGUOUS QUESTIONS:
-       - Mention potential related content from context
-       - Ask clarifying questions
-    
-    # Important
-    Never invent information beyond what's in the context.
-    `;
+    switch (chatMode) {
+      case "rag":
+        logger.info("🧠 Modo RAG seleccionado");
+        // return handleRagChatRequest(req);                    // --> Función para manejar el chat en modo RAG
+        return handleChatRequest(messages, resource_id);        // --> Implementación temporal mientras se crea el modo RAG
 
-    const result = streamText({
-      model: openai("gpt-4o"),
-      system: enhancedSystemPrompt,
-      temperature: 0.4,
-      maxSteps: 5,
-      messages,
-    });
+      case "workflow":
+        logger.info("🔀 Modo Workflow seleccionado");
+        // return handleWorkflowChatRequest(req);               // --> Función para manejar el chat en modo WORKFLOW
+        return handleChatRequest(messages, resource_id);        // --> Implementación temporal mientras se crea el modo WORKFLOW
 
-    logger.info("✅ Default mode processing completed");
-    return result.toDataStreamResponse();
+      case "default":
+      default:
+        logger.info("💬 Modo Default seleccionado");
+        // return handleDefaultChatRequest(req);                // --> Función para manejar el chat en modo DEFAULT
+        return handleChatRequest(messages, resource_id);        // --> Implementación temporal mientras se crea el modo DEFAULT
+    }
   } catch (error) {
-    logger.error("❌ Error en el flujo de chat", error);
-    return new Response(
-      JSON.stringify({ error: "Error al procesar la solicitud de chat" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    logger.error("❌ Error interpretando el cuerpo del request", error);
+    return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
