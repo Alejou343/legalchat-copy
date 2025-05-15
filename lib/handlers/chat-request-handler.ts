@@ -3,6 +3,7 @@ import logger from "@/lib/logger";
 import { streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { buildSystemPrompt } from "../prompts";
+import { rewriteUserQuery } from "../utils/reformulate-query";
 
 export async function handleChatRequest(messages: any, resource_id: string) {
   try {
@@ -11,8 +12,10 @@ export async function handleChatRequest(messages: any, resource_id: string) {
     logger.info("✅ Mensajes obtenidos del cuerpo de la solicitud");
 
     const lastUserMessage = messages[messages.length - 1].content;
+    const reformulateQuery = await rewriteUserQuery(lastUserMessage)
 
-    const relevantContent = await findRelevantContent(lastUserMessage, resource_id);
+    logger.info(`✅ Query reformulada correctamente ${reformulateQuery}`);
+    const relevantContent = await findRelevantContent(reformulateQuery, resource_id);
     logger.info(`✅ Contenido relevante encontrado: ${relevantContent.length} fragmentos`);
 
     const prompt = buildSystemPrompt(relevantContent, lastUserMessage);

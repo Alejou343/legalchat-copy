@@ -7,25 +7,17 @@ import logger from "../logger";
 
 const embeddingModel = openai.embedding("text-embedding-3-small");
 
-export const generateChunks = (
-  input: string,
-  maxLength: number = 1000,
-  overlap: number = 100
-): string[] => {
+export const generateChunks = (input: string): string[] => {
+  // Divide por encabezados como "1. Background", "2. Migration Journey", etc.
+  const rawSections = input.split(/(?=\d+\.\s[A-Z][^\n]+)/g);
+
   const chunks: string[] = [];
 
-  let position = 0;
-
-  while (position < input.length) {
-    const end = Math.min(position + maxLength, input.length);
-    const chunk = input.slice(position, end).trim();
-
-    if (chunk.length > 0) {
-      chunks.push(chunk);
+  for (let i = 0; i < rawSections.length; i++) {
+    const section = rawSections[i].trim();
+    if (section) {
+      chunks.push(section);
     }
-
-    // Mueve la posición con solapamiento
-    position += maxLength - overlap;
   }
 
   return chunks;
@@ -79,10 +71,7 @@ export const findRelevantContent = async (
       })
       .from(embeddings)
       .where(
-        and(
-          eq(embeddings.resource_id, resource_id),
-          gt(similarityExpr, 0.4)
-        )
+        and(eq(embeddings.resource_id, resource_id), gt(similarityExpr, 0.4))
       )
       .orderBy(() => desc(similarityExpr))
       .limit(4);
