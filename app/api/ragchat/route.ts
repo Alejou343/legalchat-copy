@@ -30,7 +30,6 @@ export async function POST(req: NextRequest) {
         // return handleWorkflowChatRequest(req);               // --> Función para manejar el chat en modo WORKFLOW
         return handleChatRequest(messages, resource_id);        // --> Implementación temporal mientras se crea el modo WORKFLOW
 
-      case "default":
       default:
         logger.info("💬 Modo Default seleccionado");
         // return handleDefaultChatRequest(req);                // --> Función para manejar el chat en modo DEFAULT

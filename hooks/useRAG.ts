@@ -142,7 +142,8 @@ export const useRAG = () => {
   }, []);
 
   // Scroll al final de los mensajes
-  useEffect(() => {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+    useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
