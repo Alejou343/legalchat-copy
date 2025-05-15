@@ -14,26 +14,9 @@ import {
 } from "ai";
 import { z } from "zod";
 import type { NextRequest } from "next/server";
+import { extractTextWithPdfParse } from "@/lib/utils/pdf-utils";
 
 const MODEL_VERSION = "gpt-4o";
-
-// Función para extraer texto de un PDF
-async function extractTextWithPdfParse(buffer: Buffer): Promise<string> {
-  try {
-    logger.warn("⚠️ Extrayendo texto del PDF");
-    const { default: pdfParse } = await import("pdf-parse");
-    const data = await pdfParse(buffer);
-    logger.info("✅ Texto extraído exitosamente del PDF");
-    return data.text;
-  } catch (error) {
-    logger.error("❌ Error al extraer texto del PDF", error);
-    throw new Error(
-      `Error extrayendo texto del PDF: ${
-        error instanceof Error ? error.message : String(error)
-      }`
-    );
-  }
-}
 
 // Función para parsear pasos del workflow
 async function parseSteps(input: string) {
@@ -86,8 +69,10 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const buffer = Buffer.from(await file.arrayBuffer());
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
       const content = await extractTextWithPdfParse(buffer);
+
       const processedContent = content.replace(/\s+/g, " ").trim();
       logger.info("✅ Texto del PDF procesado correctamente");
 
@@ -129,14 +114,14 @@ export async function POST(req: NextRequest) {
     } = {};
 
     logger.warn("⚠️ Trying to get messages, mode and resource_id");
-    
+
     try {
       const body = await req.json();
       messages = body.messages;
       mode = body.mode || "default";
       resource_id = body.resource_id || "";
       data = body.data || {};
-      
+
       logger.info("✅ Messages, mode and resource_id get successfully");
     } catch (err) {
       logger.error("❌ Cannot get messages and mode");
@@ -149,7 +134,10 @@ export async function POST(req: NextRequest) {
         logger.warn("⚠️ Starting default mode processing");
 
         const lastUserMessage = messages[messages.length - 1].content;
-        const relevantContent = await findRelevantContent(lastUserMessage, resource_id);
+        const relevantContent = await findRelevantContent(
+          lastUserMessage,
+          resource_id
+        );
 
         // Sistema de prompts mejorado con RAG
         const enhancedSystemPrompt = `
@@ -178,7 +166,7 @@ export async function POST(req: NextRequest) {
           system: enhancedSystemPrompt,
           temperature: 0.4,
           maxSteps: 5,
-          messages, 
+          messages,
         });
 
         logger.info("✅ Default mode processing completed");
@@ -190,8 +178,8 @@ export async function POST(req: NextRequest) {
           { status: 500 }
         );
       }
-      
-    // Procesamiento en modo workflow
+
+      // Procesamiento en modo workflow
     } else if (mode === "workflow") {
       logger.warn("⚠️ Starting workflow mode processing");
       return createDataStreamResponse({
@@ -234,19 +222,20 @@ export async function POST(req: NextRequest) {
               logger.info(`✅ Step ${i} progress written successfully`);
 
               // Obtener contenido relevante para este paso si hay un resource_id
-              const relevantContent = resource_id 
+              const relevantContent = resource_id
                 ? await findRelevantContent(step, resource_id)
                 : [];
-              
-              const contextPrompt = relevantContent.length > 0
-                ? `
+
+              const contextPrompt =
+                relevantContent.length > 0
+                  ? `
                 RELEVANT_CONTEXT: 
-                ${relevantContent.map(x => x.name).join("\n")}
+                ${relevantContent.map((x) => x.name).join("\n")}
                 
                 PREVIOUS_CONTEXT: ${state.context.join("\n") || "None"}
                 CURRENT_STEP: ${step}
                 `
-                : `
+                  : `
                 PREVIOUS_CONTEXT: ${state.context.join("\n") || "None"}
                 CURRENT_STEP: ${step}
                 `;
@@ -276,20 +265,21 @@ export async function POST(req: NextRequest) {
             logger.info("✅ Final step progress written successfully");
 
             // Obtener contenido relevante para el paso final si hay un resource_id
-            const finalRelevantContent = resource_id 
+            const finalRelevantContent = resource_id
               ? await findRelevantContent(lastStep, resource_id)
               : [];
-            
-            const finalContextPrompt = finalRelevantContent.length > 0
-              ? `
+
+            const finalContextPrompt =
+              finalRelevantContent.length > 0
+                ? `
               RELEVANT_CONTEXT: 
-              ${finalRelevantContent.map(x => x.name).join("\n")}
+              ${finalRelevantContent.map((x) => x.name).join("\n")}
               
               PREVIOUS_CONTEXT: ${state.context.join("\n") || "None"}
               CURRENT_STEP: ${lastStep}
               Generate the final answer for the user based on the RELEVANT_CONTEXT, PREVIOUS_CONTEXT and the CURRENT_STEP.
               `
-              : `
+                : `
               PREVIOUS_CONTEXT: ${state.context.join("\n") || "None"}
               CURRENT_STEP: ${lastStep}
               Generate the final answer for the user based on the PREVIOUS_CONTEXT and the CURRENT_STEP.
@@ -331,7 +321,10 @@ export async function POST(req: NextRequest) {
       });
     } else {
       logger.error("❌ Invalid mode specified");
-      return Response.json({ error: "Invalid mode specified" }, { status: 400 });
+      return Response.json(
+        { error: "Invalid mode specified" },
+        { status: 400 }
+      );
     }
   } catch (error) {
     logger.error("❌ Error general en procesamiento", error);
