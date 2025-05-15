@@ -108,6 +108,7 @@ export default function CombinedChat() {
                   message={{
                     id: index.toString(),
                     content: message.content,
+                    workflow: null,
                     role: message.role as "user" | "assistant",
                   }}
                   index={index}
