@@ -3,7 +3,6 @@ import logger from "@/lib/logger";
 import { chatSystemPrompt, parseStepsSystemPrompt } from "@/lib/prompts";
 import { createResource } from "@/lib/actions/resources";
 import { openai } from "@ai-sdk/openai";
-import { google } from "@ai-sdk/google";
 import {
 	streamText,
 	generateText, // Retained as it's used by parseSteps
@@ -11,7 +10,6 @@ import {
 	createDataStreamResponse,
 	type DataStreamWriter,
 	type Message,
-	type CreateMessage,
 } from "ai";
 import { z } from "zod";
 import type { NextRequest } from "next/server";
@@ -120,7 +118,7 @@ export async function POST(req: NextRequest) {
   try {
     let messages: Message[];
     let mode: string;
-    let resource_id: string = "";
+    let resource_id = "";
     let data: {
       file?: {
         name: string;
