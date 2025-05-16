@@ -1,4 +1,7 @@
-import { findRelevantContent } from "@/lib/ai/embedding";
+import {
+  findRelevantContent,
+  getTopChunksByResourceId,
+} from "@/lib/ai/embedding";
 import logger from "@/lib/logger";
 import { streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
@@ -12,13 +15,29 @@ export async function handleChatRequest(messages: any, resource_id: string) {
     logger.info("✅ Mensajes obtenidos del cuerpo de la solicitud");
 
     const lastUserMessage = messages[messages.length - 1].content;
-    const reformulateQuery = await rewriteUserQuery(lastUserMessage)
+    const reformulateQuery = await rewriteUserQuery(lastUserMessage);
 
     logger.info(`✅ Query reformulada correctamente ${reformulateQuery}`);
-    const relevantContent = await findRelevantContent(reformulateQuery, resource_id);
-    logger.info(`✅ Contenido relevante encontrado: ${relevantContent.length} fragmentos`);
+    const relevantContent = await findRelevantContent(
+      reformulateQuery,
+      resource_id
+    );
+    logger.info(
+      `✅ Contenido relevante encontrado: ${relevantContent.length} fragmentos`
+    );
 
-    const prompt = buildSystemPrompt(relevantContent, lastUserMessage);
+    const summaryChunks = await getTopChunksByResourceId(resource_id, 3);
+
+    const seen = new Set();
+    const combinedChunks = [...summaryChunks, ...relevantContent].filter(
+      (chunk) => {
+        if (seen.has(chunk.name)) return false;
+        seen.add(chunk.name);
+        return true;
+      }
+    );
+
+    const prompt = buildSystemPrompt(combinedChunks, lastUserMessage);
 
     const result = streamText({
       model: openai("gpt-4o"),

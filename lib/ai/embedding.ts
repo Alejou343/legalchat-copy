@@ -95,3 +95,31 @@ export const findRelevantContent = async (
     return []; // o podrías lanzar el error si quieres que lo maneje el caller
   }
 };
+
+export const getTopChunksByResourceId = async (
+  resource_id: string,
+  limit = 4
+): Promise<Array<{ name: string }>> => {
+  try {
+    const topChunks = await db
+      .select({
+        name: embeddings.content,
+        similarity: sql<number>`1`,
+      })
+      .from(embeddings)
+      .where(eq(embeddings.resource_id, resource_id))
+      .limit(limit);
+
+    if (topChunks.length === 0) {
+      logger.warn(`⚠️ No se encontraron fragmentos para el recurso: ${resource_id}`);
+    } else {
+      logger.info(`✅ Se recuperaron los primeros ${limit} fragmentos del documento`);
+    }
+
+    return topChunks;
+  } catch (error) {
+    logger.error("❌ Error al obtener los primeros embeddings:", error);
+    return [];
+  }
+};
+
