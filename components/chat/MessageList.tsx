@@ -38,7 +38,7 @@ export const MessageList: React.FC<MessageListProps> = ({
             ref={scrollAreaRef}
             className="flex-grow p-4 overflow-y-auto"
             // onScroll={handleScroll} // If manual scroll detection is needed here
-        >
+        >   
             <div className="max-w-4xl mx-auto flex flex-col gap-4">
                 {displayMessages.map((message, index) =>
                     message && ( // Ensure message object exists
@@ -53,7 +53,7 @@ export const MessageList: React.FC<MessageListProps> = ({
                 )}
 
                 {/* Loading indicator for assistant response in default mode */}
-                {isLoading && isLastUserMessage && chatMode === "default" && (
+                {isLoading && chatMode !== 'workflow' && (
                     <div className="flex flex-row gap-2 items-start mt-4">
                         <div className="size-[24px] flex justify-center items-center flex-shrink-0 text-zinc-500 mt-1">
                             <Scale />

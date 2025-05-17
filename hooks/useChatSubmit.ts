@@ -1,3 +1,4 @@
+import { text } from 'drizzle-orm/pg-core';
 import { useCallback } from "react";
 import { toast } from "sonner";
 import type { DisplayMessage } from "./useMessageManager.ts"; // Assuming type
@@ -15,7 +16,7 @@ interface UseChatSubmitProps {
     addOptimisticUserMessage: (content: string, file?: File | null) => Promise<DisplayMessage>;
     updateOptimisticUserMessage: (messageId: string, newContent: string, newFile?: File | null) => Promise<void>;
     appendToApi: (
-        message: { role: "user"; content: string },
+        message: { role: "user"; content: string } | { role: "user"; content: Array<{type: string; text?: string; data?: string; mimeType?: string }> },
         // biome-ignore lint/suspicious/noExplicitAny: <explanation>
         options?: { data?: any }
     ) => Promise<string | undefined>; // Vercel SDK's append returns string (messageId) or void
@@ -98,10 +99,18 @@ export function useChatSubmit({
             await updateOptimisticUserMessage(editingMessageId, currentInput, currentFile);
             setApiMessages([]); // Clear API messages to resend context from the edited point
             try {
-                await appendToApi(
-                    { role: "user", content: currentInput },
-                    { data: fileDataForApi }
-                );
+                if(fileDataForApi) {
+                    await appendToApi(
+                        { role: "user", content: [{type: 'text', text: currentInput}, {type: 'file', data: fileDataForApi.file.content, mimeType: fileDataForApi.file.type }] },
+                        { data: fileDataForApi }
+                    );
+                }
+                else {
+                    await appendToApi(
+                        { role: "user", content: currentInput },
+                        { data: fileDataForApi }
+                    );
+                }
             } catch (apiError) {
                 console.error("Error sending edited message:", apiError);
                 toast.error("Failed to send edited message.");
@@ -112,10 +121,18 @@ export function useChatSubmit({
             // --- Handle New Message ---
             const optimisticMessage = await addOptimisticUserMessage(currentInput, currentFile);
             try {
-                await appendToApi(
-                    { role: "user", content: currentInput },
-                    { data: fileDataForApi }
-                );
+                if(fileDataForApi) {
+                    await appendToApi(
+                        { role: "user", content: [{type: 'text', text: currentInput}, {type: 'file', data: fileDataForApi.file.content, mimeType: fileDataForApi.file.type }] },
+                        { data: fileDataForApi }
+                    );
+                }
+                else {
+                    await appendToApi(
+                        { role: "user", content: currentInput },
+                        { data: fileDataForApi }
+                    );
+                }
             } catch (apiError) {
                 console.error("Error sending new message:", apiError);
                 toast.error("Failed to send message.");

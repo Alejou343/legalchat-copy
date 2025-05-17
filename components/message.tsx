@@ -29,6 +29,7 @@ export const Message = ({ message, index, onEdit }: MessageProps) => {
 	const [workflowSteps, setWorkflowSteps] = useState<string[]>([]);
 	const [currentStep, setCurrentStep] = useState(0);
 	const [workflowComplete, setWorkflowComplete] = useState(false);
+	// console.log("Message: ", message);
 
 	const copyToClipboard = async () => {
 		try {
@@ -78,7 +79,8 @@ export const Message = ({ message, index, onEdit }: MessageProps) => {
 		>
 			{isUser && (
 				<div className="flex flex-row gap-2 p-2 items-center">
-					<motion.div
+					{/* TODO: ad editing functionality */}
+					{/* <motion.div
 						animate={{ opacity: showActions ? 1 : 0 }}
 						transition={{ duration: 0.2 }}
 					>
@@ -92,7 +94,7 @@ export const Message = ({ message, index, onEdit }: MessageProps) => {
 								Edit
 							</TooltipContent>
 						</Tooltip>
-					</motion.div>
+					</motion.div> */}
 					<div className="flex flex-col gap-2 relative max-w-full overflow-hidden rounded-lg bg-accent p-4">
 						<div className="flex flex-col gap-4 max-w-full overflow-hidden">
 							<Markdown>{message.content}</Markdown>

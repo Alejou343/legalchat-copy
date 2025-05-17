@@ -69,6 +69,7 @@ export const pseudonimizationSystemPrompt = () => {
       `;
 };
 
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 export const buildSystemPrompt = (context: any[], question: string): string => {
   return `
 # Role
