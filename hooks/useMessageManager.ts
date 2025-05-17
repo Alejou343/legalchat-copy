@@ -37,7 +37,7 @@ export function useMessageManager({
 }: UseMessageManagerProps) {
 	const [displayMessages, setDisplayMessages] = useState<DisplayMessage[]>([]);
 	const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-
+	
 	// Optimistically add a user message to the display list
 	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
 	const addOptimisticUserMessage = useCallback(
@@ -226,6 +226,7 @@ export function useMessageManager({
 
 	return {
 		displayMessages,
+		setDisplayMessages,
 		editingMessageId,
 		setEditingMessageId,
 		addOptimisticUserMessage,

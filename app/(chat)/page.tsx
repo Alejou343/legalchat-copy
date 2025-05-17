@@ -26,9 +26,8 @@ import FileDisplay from "@/components/FileDisplay";
 
 export default function ChatPage() {
 	// --- Custom Hooks ---
-	const { chatMode, toggleChatMode } = useChatMode("default");
+	const { chatMode, toggleChatMode, setChatMode } = useChatMode("default");
 	const [ hasFile, setHasFile ] = useState(false);
-
 	
 	const {
 		selectedFile,
@@ -67,6 +66,7 @@ export default function ChatPage() {
 
 	const {
 		displayMessages,
+		setDisplayMessages,
 		editingMessageId,
 		setEditingMessageId,
 		addOptimisticUserMessage,
@@ -154,6 +154,25 @@ export default function ChatPage() {
 		setSelectedFile(null);
 		setFilePreview(null);
 	};
+
+	  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+	  useEffect(() => {
+    const handleResetChat = () => {
+		handleClearSelectedFile();
+		chatAPI.setMessages([]);
+		chatAPI.setInput("");
+		setDisplayMessages([]);
+		setEditingMessageId(null);
+		setSelectedFile(null);
+		setFilePreview(null);
+		setHasFile(false);
+		setChatMode("default");
+    };
+
+    window.addEventListener('resetChat', handleResetChat);
+    return () => window.removeEventListener('resetChat', handleResetChat);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 	return (
 		<TooltipProvider delayDuration={100}>

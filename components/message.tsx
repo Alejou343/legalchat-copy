@@ -64,6 +64,18 @@ export const Message = ({ message, index, onEdit }: MessageProps) => {
 		}
 	}, [message.workflow]);
 
+		  useEffect(() => {
+		const handleResetChat = () => {
+			setWorkflowSteps([]);
+			setCurrentStep(0);
+			setWorkflowComplete(false);
+		};
+	
+		window.addEventListener('resetChat', handleResetChat);
+		return () => window.removeEventListener('resetChat', handleResetChat);
+	  // eslint-disable-next-line react-hooks/exhaustive-deps
+	  }, []);
+
 	return (
 		<motion.div
 			key={message.id}
