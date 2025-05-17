@@ -6,12 +6,10 @@ import { useEffect, useState } from "react";
 import { UserDropdown } from "@/components/user-dropdown";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
 
-export function Topbar({ path }: { path: string }) {
-  const { theme, resolvedTheme } = useTheme();
+export function Topbar() {
+  const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const router = useRouter();
 
   // Only render the correct logo after component has mounted
   useEffect(() => {
@@ -26,9 +24,7 @@ export function Topbar({ path }: { path: string }) {
 
   // Function to handle new chat creation
   const handleNewChat = () => {
-    // console.log("New Chat button clicked! Triggering reload.");
-    // router.push('/') // Use standard browser navigation for a full reload
-    window.location.href = path;
+    window.dispatchEvent(new CustomEvent('resetChat'));
   };
 
   return (

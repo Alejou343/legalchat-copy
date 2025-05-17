@@ -29,6 +29,7 @@ export const Message = ({ message, index, onEdit }: MessageProps) => {
 	const [workflowSteps, setWorkflowSteps] = useState<string[]>([]);
 	const [currentStep, setCurrentStep] = useState(0);
 	const [workflowComplete, setWorkflowComplete] = useState(false);
+	// console.log("Message: ", message);
 
 	const copyToClipboard = async () => {
 		try {
@@ -63,6 +64,18 @@ export const Message = ({ message, index, onEdit }: MessageProps) => {
 		}
 	}, [message.workflow]);
 
+		  useEffect(() => {
+		const handleResetChat = () => {
+			setWorkflowSteps([]);
+			setCurrentStep(0);
+			setWorkflowComplete(false);
+		};
+	
+		window.addEventListener('resetChat', handleResetChat);
+		return () => window.removeEventListener('resetChat', handleResetChat);
+	  // eslint-disable-next-line react-hooks/exhaustive-deps
+	  }, []);
+
 	return (
 		<motion.div
 			key={message.id}
@@ -78,7 +91,8 @@ export const Message = ({ message, index, onEdit }: MessageProps) => {
 		>
 			{isUser && (
 				<div className="flex flex-row gap-2 p-2 items-center">
-					<motion.div
+					{/* TODO: add editing functionality */}
+					{/* <motion.div
 						animate={{ opacity: showActions ? 1 : 0 }}
 						transition={{ duration: 0.2 }}
 					>
@@ -92,7 +106,7 @@ export const Message = ({ message, index, onEdit }: MessageProps) => {
 								Edit
 							</TooltipContent>
 						</Tooltip>
-					</motion.div>
+					</motion.div> */}
 					<div className="flex flex-col gap-2 relative max-w-full overflow-hidden rounded-lg bg-accent p-4">
 						<div className="flex flex-col gap-4 max-w-full overflow-hidden">
 							<Markdown>{message.content}</Markdown>
@@ -119,7 +133,7 @@ export const Message = ({ message, index, onEdit }: MessageProps) => {
 					</div>
 					<div className="flex flex-col gap-2 relative max-w-full overflow-hidden rounded-lg px-1">
 						{message.workflow && (
-							<div className="mb-2">
+							<div className="mb-2 max-w-lg">
 								<WorkflowTimeline
 									steps={workflowSteps}
 									currentStep={currentStep}

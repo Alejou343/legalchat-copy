@@ -4,22 +4,13 @@
 import type React from "react";
 import { useEffect, useState } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip"; // Assuming this is Shadcn UI
-import {
-	Scale,
-	Wand2,
-	Gavel,
-	Upload,
-	FileText,
-	X,
-	CheckCircle2,
-} from "lucide-react";
+import { Scale, Wand2, Gavel, Upload, CheckCircle2 } from "lucide-react";
 
 // Custom Hooks
 import { useChatMode, type ChatMode } from "@/hooks/useChatMode";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import {
 	useMessageManager,
-	type DisplayMessage,
 } from "@/hooks/useMessageManager";
 import { useChatAPI } from "@/hooks/useChatAPI";
 import { useChatSubmit } from "@/hooks/useChatSubmit";
@@ -30,19 +21,14 @@ import { useChatScroll } from "@/hooks/useChatScroll";
 import { WelcomeScreen } from "@/components/chat/WelcomeScreen";
 import { MessageList } from "@/components/chat/MessageList";
 import { ChatInputForm } from "@/components/chat/ChatInputForm";
-import { FileUploadPreviewUI } from "@/components/chat/FileUploadPreviewUI"; // Renamed to avoid conflict
 import { UploadSuccessNotification } from "@/components/chat/UploadSuccessNotification";
+import FileDisplay from "@/components/FileDisplay";
 
 export default function ChatPage() {
-	// --- State for resource_id ---
-	const [resource_id, setResource_id] = useState<string | null>(null);
-	useEffect(() => {
-		setResource_id(localStorage.getItem("currentUserId"));
-	}, []);
-
 	// --- Custom Hooks ---
-	const { chatMode, toggleChatMode } = useChatMode("default");
-
+	const { chatMode, toggleChatMode, setChatMode } = useChatMode("default");
+	const [ hasFile, setHasFile ] = useState(false);
+	
 	const {
 		selectedFile,
 		setSelectedFile,
@@ -55,16 +41,24 @@ export default function ChatPage() {
 		uploadSuccess,
 		setUploadSuccess,
 	} = useFileUpload();
+	
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+		useEffect(()=>{
+		if(!hasFile && uploadSuccess){
+			setHasFile(true);
+		}
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [uploadSuccess]);
 
 	const chatAPI = useChatAPI({
 		// Encapsulates Vercel's useChat
 		chatMode,
-		resource_id,
+		hasFile,
 		onSuccess: () => {
 			setSelectedFile(null); // Clear selected file after successful assistant response
 			setFilePreview(null); // Clear preview as well
 		},
-		onError: () => {
+		onError: (error) => {
 			setSelectedFile(null); // Clear selected file on error
 			setFilePreview(null);
 		},
@@ -72,6 +66,7 @@ export default function ChatPage() {
 
 	const {
 		displayMessages,
+		setDisplayMessages,
 		editingMessageId,
 		setEditingMessageId,
 		addOptimisticUserMessage,
@@ -81,12 +76,6 @@ export default function ChatPage() {
 		apiMessages: chatAPI.messages,
 		apiData: chatAPI.data,
 		chatMode: chatMode,
-		currentUserId: resource_id, // For setting resource_id on messages if needed
-		onDisplayMessagesChange: (newDisplayMessages) => {
-			// Callback if direct manipulation of API messages is needed
-			// Example: if cleaning needs to reflect back to Vercel's setMessages
-			// chatAPI.setMessages(convertToVercelMessages(newDisplayMessages));
-		},
 	});
 
 	// Effect to sync API messages to displayMessages
@@ -112,7 +101,28 @@ export default function ChatPage() {
 		addOptimisticUserMessage,
 		updateOptimisticUserMessage,
 		appendToApi: async (message, options) => {
-			const result = await chatAPI.append(message, options);
+			// biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
+			let result;
+			if (typeof message.content === "string") {
+				result = await chatAPI.append({
+					role: message.role,
+					content: message.content
+				});
+			} else if (Array.isArray(message.content)) {
+				result = await chatAPI.append({
+					role: message.role,
+					content: message.content[0].text ?? "",
+					parts: [
+						{ type: "text", text: message.content[0].text ?? "" },
+						{
+							type: "file",
+							mimeType: message.content[1].mimeType ?? "",
+							data: message.content[1].data ?? "",
+						},
+					],
+				}, options);
+			}
+
 			return result === null ? undefined : result;
 		},
 		setApiMessages: chatAPI.setMessages, // For clearing context on edit
@@ -145,6 +155,25 @@ export default function ChatPage() {
 		setFilePreview(null);
 	};
 
+	  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+	  useEffect(() => {
+    const handleResetChat = () => {
+		handleClearSelectedFile();
+		chatAPI.setMessages([]);
+		chatAPI.setInput("");
+		setDisplayMessages([]);
+		setEditingMessageId(null);
+		setSelectedFile(null);
+		setFilePreview(null);
+		setHasFile(false);
+		setChatMode("default");
+    };
+
+    window.addEventListener('resetChat', handleResetChat);
+    return () => window.removeEventListener('resetChat', handleResetChat);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 	return (
 		<TooltipProvider delayDuration={100}>
 			<div className="flex flex-col justify-center items-center h-[calc(100vh-80px)] md:h-[calc(100vh-100px)] w-full">
@@ -167,12 +196,9 @@ export default function ChatPage() {
 					)}
 
 					{filePreview && ( // Use filePreview for the UI element
-						<FileUploadPreviewUI
-							fileName={filePreview.name}
-							onClearFile={() => {
-								handleClearSelectedFile(); // This now also clears filePreview via useFileUpload
-							}}
-							icons={{ FileText, X }}
+						<FileDisplay
+							selectedFile={selectedFile}
+							handleClearFile={handleClearSelectedFile}
 						/>
 					)}
 
