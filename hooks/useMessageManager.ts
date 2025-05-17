@@ -138,7 +138,7 @@ export function useMessageManager({
 						content = content.replace(/(\*\*|__)(.*?)\1/g, "$2");
 					}
 
-					const displayMsgPayload: DisplayMessage = {
+					let displayMsgPayload: DisplayMessage = {
 						id: apiMsg.id,
 						content: content,
 						role: apiMsg.role as "user" | "assistant",
@@ -155,6 +155,12 @@ export function useMessageManager({
 							(chatMode === "workflow" &&
 								newMessages[existingMsgIndex].workflow !== currentApiData)
 						) {
+							if(newMessages[existingMsgIndex].file !== undefined){
+								displayMsgPayload = {
+									...displayMsgPayload,
+									file: newMessages[existingMsgIndex].file
+								}
+							}
 							newMessages[existingMsgIndex] = displayMsgPayload;
 							changed = true;
 						}
@@ -217,16 +223,6 @@ export function useMessageManager({
 		},
 		[chatMode],
 	);
-
-	// Effect for setting resource_id from localStorage (from original code)
-	// This might be better placed in the main ChatPage component if resource_id is used by useChatAPI directly.
-	// However, if displayMessages themselves need to store it, it could be here.
-	// For now, assuming resource_id is primarily for the API call body.
-	// useEffect(() => {
-	//  const id = localStorage.getItem('currentUserId');
-	//  // If you need to update messages with this id:
-	//  // setDisplayMessages(prev => prev.map(m => ({ ...m, userId: id })));
-	// }, []);
 
 	return {
 		displayMessages,

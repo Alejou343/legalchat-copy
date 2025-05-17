@@ -79,7 +79,7 @@ export const Message = ({ message, index, onEdit }: MessageProps) => {
 		>
 			{isUser && (
 				<div className="flex flex-row gap-2 p-2 items-center">
-					{/* TODO: ad editing functionality */}
+					{/* TODO: add editing functionality */}
 					{/* <motion.div
 						animate={{ opacity: showActions ? 1 : 0 }}
 						transition={{ duration: 0.2 }}
@@ -121,7 +121,7 @@ export const Message = ({ message, index, onEdit }: MessageProps) => {
 					</div>
 					<div className="flex flex-col gap-2 relative max-w-full overflow-hidden rounded-lg px-1">
 						{message.workflow && (
-							<div className="mb-2">
+							<div className="mb-2 max-w-lg">
 								<WorkflowTimeline
 									steps={workflowSteps}
 									currentStep={currentStep}

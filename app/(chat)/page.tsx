@@ -11,7 +11,6 @@ import { useChatMode, type ChatMode } from "@/hooks/useChatMode";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import {
 	useMessageManager,
-	type DisplayMessage,
 } from "@/hooks/useMessageManager";
 import { useChatAPI } from "@/hooks/useChatAPI";
 import { useChatSubmit } from "@/hooks/useChatSubmit";
@@ -24,7 +23,6 @@ import { MessageList } from "@/components/chat/MessageList";
 import { ChatInputForm } from "@/components/chat/ChatInputForm";
 import { UploadSuccessNotification } from "@/components/chat/UploadSuccessNotification";
 import FileDisplay from "@/components/FileDisplay";
-import { toast } from "sonner";
 
 export default function ChatPage() {
 	// --- Custom Hooks ---
