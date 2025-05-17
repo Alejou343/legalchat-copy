@@ -16,7 +16,7 @@ export default function ChatLayout({
     >
       <div className="flex flex-col h-[calc(100dvh-2rem)] m-4">
         <Toaster position="top-center" richColors />
-        <Topbar path="/rag" />
+        <Topbar />
         {children}
       </div>
     </ThemeProvider>

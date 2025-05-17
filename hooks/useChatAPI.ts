@@ -4,7 +4,7 @@ import type { ChatMode } from "./useChatMode"; // Assuming ChatMode type is expo
 
 interface UseChatAPIProps {
     chatMode: ChatMode;
-    resource_id: string | null;
+    hasFile: boolean;
     onSuccess?: (message: VercelMessage) => void;
     onError?: (error: Error) => void;
 }
@@ -14,7 +14,7 @@ interface UseChatAPIProps {
  * @param props - Configuration for the chat API.
  * @returns The state and methods from useChat, plus derived loading states.
  */
-export function useChatAPI({ chatMode, resource_id, onSuccess, onError }: UseChatAPIProps) {
+export function useChatAPI({ chatMode, hasFile, onSuccess, onError }: UseChatAPIProps) {
     const {
         messages,
         input,
@@ -30,7 +30,7 @@ export function useChatAPI({ chatMode, resource_id, onSuccess, onError }: UseCha
         api: "/api/chat", // Ensure your API endpoint is correct
         body: {
             mode: chatMode,
-            resource_id: resource_id || '', // Send mode and resource_id to the backend
+            hasFile,
         },
         onError: (error) => {
             console.error("Chat API Error:", error);
@@ -38,18 +38,16 @@ export function useChatAPI({ chatMode, resource_id, onSuccess, onError }: UseCha
             onError?.(error);
         },
         onFinish: (message) => {
-            // This onFinish is for the entire stream.
-            // Individual message processing (like cleaning markdown) might be better in useMessageManager
-            // or if it's a final transformation before display.
             onSuccess?.(message);
         },
+        experimental_throttle: 150, // Adjust as needed
     });
 
     // Derived state: Is the chat waiting for a response or streaming?
-    const isLoading = status === "streaming" || (status === "submitted" && chatMode === "workflow");
+    
     const isStreaming = status === "streaming";
     const isSubmitted = status === "submitted";
-
+    const isLoading = isSubmitted;
 
     return {
         messages,
