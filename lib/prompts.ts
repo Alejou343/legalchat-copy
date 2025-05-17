@@ -1,7 +1,7 @@
 export const parseStepsSystemPrompt = () => {
   return `
       You are an expert at parsing instructions.
-      Extract a list of sequential steps from the user's input. Even if the steps aren't explicitly numbered, identify the key actions and organize them in a logical order. Limit the list to a maximum of 5 steps
+      Extract a list of sequential steps from the user's input. Even if the steps aren't explicitly numbered, identify the key actions and organize them in a logical order. Limit the list to a maximum of 3 steps
       Maintain the user's original wording but standardize format.
       Break complex steps into simpler ones when appropriate.
       Ignore conversational elements and focus only on actionable items.
