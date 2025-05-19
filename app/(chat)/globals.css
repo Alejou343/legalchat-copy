@@ -74,3 +74,9 @@
     @apply bg-background text-foreground;
   }
 } 
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0; transform: translateY(-20px) translateX(-50%); }
+  10%, 90% { opacity: 1; transform: translateY(0) translateX(-50%); }
+}
+.animate-fade-in-out { animation: fadeInOut 3s ease-in-out forwards; }

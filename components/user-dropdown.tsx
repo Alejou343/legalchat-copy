@@ -83,7 +83,7 @@ export function UserDropdown() {
         {user && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+            <DropdownMenuItem onClick={handleLogout} className="text-red-400 focus:text-red-600 focus:bg-red-400/10 dark:text-red-500 dark:focus:bg-red-500/10">
               <LogOut className="mr-2 h-4 w-4" />
               <span>Logout</span>
             </DropdownMenuItem>
