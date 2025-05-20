@@ -1,6 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { anthropic } from "@ai-sdk/anthropic";
-import { createDataStreamResponse, DataStreamWriter, streamText, generateText, CoreMessage } from "ai";
+import { createDataStreamResponse, type DataStreamWriter, streamText, generateText, type CoreMessage } from "ai";
 import logger from "@/lib/logger";
 import { chatSystemPrompt } from "@/lib/prompts";
 import { withRetry } from "../retryUtils";
@@ -88,7 +88,8 @@ async function processIntermediateSteps(
     // Generate text for current step
     logger.warn(`⚠️ Generating text for step ${i}${hasFile ? ' with file' : ''}`);
     
-    let result;
+    // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
+        let result;
     if (hasFile) {
       // Use Anthropic for file-related steps
       result = await withRetry(
@@ -160,7 +161,8 @@ async function processFinalStep(
   // Generate text for final step
   logger.warn(`⚠️ Generating final text stream${hasFile ? ' with file' : ''}`);
   
-  let finalResult;
+  // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
+    let finalResult;
   if (hasFile) {
     // Use Anthropic for file-related final step
     finalResult = await withRetry(

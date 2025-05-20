@@ -1,5 +1,5 @@
 import { streamText } from "ai";
-import { CoreMessage } from "ai";
+import type { CoreMessage } from "ai";
 import logger from "@/lib/logger";
 import { chatSystemPrompt } from "@/lib/prompts";
 import { withRetry } from "../retryUtils";
@@ -15,7 +15,8 @@ export async function processDefaultMode(messages: CoreMessage[], hasFile: boole
   try {
     logger.warn("⚠️ Starting default mode processing");
     
-    let result;
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+        let result: any;
     
     if (hasFile) {
       // Use Anthropic for file processing
