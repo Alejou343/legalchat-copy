@@ -1,11 +1,10 @@
-import { openai } from "@ai-sdk/openai";
-import { anthropic } from "@ai-sdk/anthropic";
 import { streamText } from "ai";
 import { CoreMessage } from "ai";
 import logger from "@/lib/logger";
 import { chatSystemPrompt } from "@/lib/prompts";
 import { withRetry } from "../retryUtils";
 import { MODEL_CONSTANTS } from "../../constants/models";
+import { bedrock } from '@ai-sdk/amazon-bedrock';
 
 // Model constants
 
@@ -23,7 +22,7 @@ export async function processDefaultMode(messages: CoreMessage[], hasFile: boole
       result = await withRetry(
         async () => 
           streamText({
-            model: anthropic(MODEL_CONSTANTS.ANTHROPIC.DEFAULT),
+            model: bedrock(MODEL_CONSTANTS.ANTHROPIC.REASONING),
             messages,
           }),
         "File processing with Anthropic"
@@ -33,7 +32,7 @@ export async function processDefaultMode(messages: CoreMessage[], hasFile: boole
       result = await withRetry(
         async () =>
           streamText({
-            model: openai(MODEL_CONSTANTS.OPENAI.DEFAULT),
+            model: bedrock(MODEL_CONSTANTS.ANTHROPIC.REASONING),
             system: chatSystemPrompt(),
             messages,
           }),

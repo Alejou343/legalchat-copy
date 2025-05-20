@@ -7,6 +7,7 @@ import { withRetry } from "../retryUtils";
 import { parseSteps } from "../workflowUtils";
 import { extractTextFromMessage } from "../requestUtils";
 import { MODEL_CONSTANTS } from "../../constants/models";
+import { bedrock } from "@ai-sdk/amazon-bedrock";
 /**
  * Process workflow mode requests
  */
@@ -93,7 +94,8 @@ async function processIntermediateSteps(
       result = await withRetry(
         () =>
           generateText({
-            model: anthropic(MODEL_CONSTANTS.ANTHROPIC.DEFAULT),
+            // model: anthropic(MODEL_CONSTANTS.ANTHROPIC.DEFAULT),
+            model: bedrock(MODEL_CONSTANTS.ANTHROPIC.REASONING),
             messages: [
               ...messages,
               {
@@ -113,7 +115,8 @@ async function processIntermediateSteps(
       result = await withRetry(
         () =>
           generateText({
-            model: openai(MODEL_CONSTANTS.OPENAI.DEFAULT),
+            // model: openai(MODEL_CONSTANTS.OPENAI.DEFAULT),
+            model: bedrock(MODEL_CONSTANTS.ANTHROPIC.REASONING),
             system: chatSystemPrompt(),
             prompt: `
               PREVIOUS_CONTEXT: ${state.context.join("\n") || "None"}
@@ -163,7 +166,8 @@ async function processFinalStep(
     finalResult = await withRetry(
       async () =>
         streamText({
-          model: anthropic(MODEL_CONSTANTS.ANTHROPIC.DEFAULT),
+          // model: anthropic(MODEL_CONSTANTS.ANTHROPIC.DEFAULT),
+          model: bedrock(MODEL_CONSTANTS.ANTHROPIC.REASONING),
           messages: [
             ...messages,
             {
@@ -192,7 +196,8 @@ async function processFinalStep(
     finalResult = await withRetry(
       async () =>
         streamText({
-          model: openai(MODEL_CONSTANTS.OPENAI.DEFAULT),
+          // model: openai(MODEL_CONSTANTS.OPENAI.DEFAULT),
+          model: bedrock(MODEL_CONSTANTS.ANTHROPIC.REASONING),
           system: chatSystemPrompt(),
           temperature: 0,
           prompt: `

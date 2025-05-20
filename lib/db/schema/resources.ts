@@ -9,8 +9,8 @@ export const resources = pgTable("resources", {
   id: varchar("id", { length: 191 })
     .primaryKey()
     .$defaultFn(() => nanoid()),
+  userEmail: varchar("user_email", { length: 191 }),
   content: text("content").notNull(),
-
   createdAt: timestamp("created_at")
     .notNull()
     .default(sql`now()`),
@@ -20,7 +20,7 @@ export const resources = pgTable("resources", {
 });
 
 // Schema for resources - used to validate API requests
-export const insertResourceSchema = createSelectSchema(resources)
+export const insertResourceSchema = createSelectSchema(resources as any)
   .extend({})
   .omit({
     id: true,
