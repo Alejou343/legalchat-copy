@@ -2,6 +2,8 @@ import { groq } from "@ai-sdk/groq";
 import { generateText } from "ai";
 import logger from "@/lib/logger";
 import { pseudonimizationSystemPrompt } from "@/lib/prompts";
+import { MODEL_CONSTANTS } from "../chat/constants/models";
+import { bedrock } from "@ai-sdk/amazon-bedrock";
 
 export async function POST(req: Request) {
   try {
@@ -23,7 +25,8 @@ export async function POST(req: Request) {
 
     logger.warn("⚠️ Starting text anonymization");
     const result = await generateText({
-      model: groq('gemma2-9b-it'),
+      // model: groq(MODEL_CONSTANTS.GROQ.DEFAULT),
+      model: bedrock(MODEL_CONSTANTS.GROQ.DEFAULT),
       system: pseudonimizationSystemPrompt(),
       prompt: message,
     });

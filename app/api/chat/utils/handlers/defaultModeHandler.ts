@@ -24,6 +24,7 @@ export async function processDefaultMode(messages: CoreMessage[], hasFile: boole
         async () => 
           streamText({
             model: bedrock(MODEL_CONSTANTS.ANTHROPIC.REASONING),
+            // model: anthropic(MODEL_CONSTANTS.ANTHROPIC.DEFAULT),
             messages,
           }),
         "File processing with Anthropic"
@@ -34,6 +35,7 @@ export async function processDefaultMode(messages: CoreMessage[], hasFile: boole
         async () =>
           streamText({
             model: bedrock(MODEL_CONSTANTS.ANTHROPIC.REASONING),
+            // model: anthropic(MODEL_CONSTANTS.ANTHROPIC.DEFAULT),
             system: chatSystemPrompt(),
             messages,
           }),

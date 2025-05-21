@@ -4,8 +4,8 @@ import { db } from "../db";
 import { and, cosineDistance, desc, eq, gt, sql } from "drizzle-orm";
 import { embeddings } from "../db/schema/embeddings";
 import logger from "../logger";
-
-const embeddingModel = openai.embedding("text-embedding-3-small");
+import { bedrock } from "@ai-sdk/amazon-bedrock";
+import { MODEL_CONSTANTS } from "@/app/api/chat/constants/models";
 
 export const generateChunks = (input: string): string[] => {
   // Divide por encabezados como "1. Background", "2. Migration Journey", etc.
@@ -28,7 +28,8 @@ export const generateEmbeddings = async (
 ): Promise<Array<{ embedding: number[]; content: string }>> => {
   const chunks = generateChunks(value);
   const { embeddings } = await embedMany({
-    model: embeddingModel,
+    // model: openai.embedding(MODEL_CONSTANTS.OPENAI.EMBEDDING),
+    model: bedrock.embedding(MODEL_CONSTANTS.ANTHROPIC.EMBEDDING),
     values: chunks,
   });
   return embeddings.map((e, i) => ({ content: chunks[i], embedding: e }));
@@ -37,7 +38,8 @@ export const generateEmbeddings = async (
 export const generateEmbedding = async (value: string): Promise<number[]> => {
   const input = value.replaceAll("\\n", " ");
   const { embedding } = await embed({
-    model: embeddingModel,
+    // model: openai.embedding(MODEL_CONSTANTS.OPENAI.EMBEDDING),
+    model: bedrock.embedding(MODEL_CONSTANTS.ANTHROPIC.EMBEDDING),
     value: input,
   });
   return embedding;
