@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     logger.warn("⚠️ Starting text anonymization");
     const result = await generateText({
       // model: groq(MODEL_CONSTANTS.GROQ.DEFAULT),
-      model: bedrock(MODEL_CONSTANTS.GROQ.DEFAULT),
+      model: bedrock(MODEL_CONSTANTS.ANTHROPIC.DEFAULT),
       system: pseudonimizationSystemPrompt(),
       prompt: message,
     });
