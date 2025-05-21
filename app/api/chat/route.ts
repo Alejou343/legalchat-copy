@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { processDefaultMode } from "./utils/handlers/defaultModeHandler";
 import { processWorkflowMode } from "./utils/handlers/workflowModeHandler";
 import { validateRequest, prepareFileMessage } from "./utils/requestUtils";
+import { handlePdfUpload } from "@/lib/handlers/pdf-upload-handler";
 
 export async function POST(req: NextRequest) {
 	try {
@@ -13,6 +14,7 @@ export async function POST(req: NextRequest) {
 		if (hasFile) {
 			try {
 				// Process file message if present
+				// const fileUpload = await handlePdfUpload(data)
 				const processedMessages = await prepareFileMessage(messages, data);
 
 				// Process based on mode

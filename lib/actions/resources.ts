@@ -8,6 +8,7 @@ import {
 import { db } from "../db";
 import { generateEmbeddings } from "../ai/embedding";
 import { embeddings as embeddingsTable } from "../db/schema/embeddings";
+import logger from "../logger";
 
 export const createResource = async (input: NewResourceParams) => {
   try {
@@ -31,6 +32,8 @@ export const createResource = async (input: NewResourceParams) => {
       resource_id: resource.id,
     };
 } catch (error) {
+    logger.error(`Error creando recurso`)
+    console.log(error)
     return {
       message: error || 'Error creating resource',
       resource_id: null,
