@@ -54,6 +54,7 @@ export default function ChatPage() {
 		// Encapsulates Vercel's useChat
 		chatMode,
 		hasFile,
+		email: localStorage.getItem('sessionId') || '',
 		onSuccess: () => {
 			setSelectedFile(null); // Clear selected file after successful assistant response
 			setFilePreview(null); // Clear preview as well

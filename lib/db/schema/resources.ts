@@ -9,7 +9,7 @@ export const resources = pgTable("resources", {
   id: varchar("id", { length: 191 })
     .primaryKey()
     .$defaultFn(() => nanoid()),
-  userEmail: varchar("user_email", { length: 191 }),
+  user_email: varchar("user_email", { length: 191 }),
   content: text("content").notNull(),
   createdAt: timestamp("created_at")
     .notNull()

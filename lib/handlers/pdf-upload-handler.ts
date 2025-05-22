@@ -8,7 +8,7 @@ export async function handlePdfUpload(data: {
     type: string;
     content: string;
   };
-}) {
+}, email: string) {
   try {
     const { file } = data;
 
@@ -39,7 +39,7 @@ export async function handlePdfUpload(data: {
 
     logger.info("✅ Texto del PDF procesado correctamente");
 
-    const { resource_id } = await createResource({ content: processedContent, userEmail: 'alejandro.auribe1@gmail.com' });
+    const { resource_id } = await createResource({ content: processedContent, user_email: email });
     logger.info("✅ Recurso creado en la base de conocimiento");
 
     return jsonResponse({

@@ -13,11 +13,12 @@ export async function validateRequest(req: NextRequest) {
 		const mode = body.mode || "default";
 		const hasFile = body.hasFile || false;
 		const data = body.data || {};
+		const email = body.email || '';
 
 		logger.info(`Has a file: ${hasFile}`);
 		logger.info("✅ Messages, mode, data and hasFile received successfully");
 
-		return { messages, mode, hasFile, data };
+		return { messages, mode, hasFile, data, email };
 	} catch (err) {
 		logger.error("❌ Cannot get messages, mode, data and hasFile", err);
 		throw new Error("Invalid JSON body");
