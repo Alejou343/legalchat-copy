@@ -2,7 +2,7 @@ import { openai } from "@ai-sdk/openai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { createDataStreamResponse, type DataStreamWriter, streamText, generateText, type CoreMessage } from "ai";
 import logger from "@/lib/logger";
-import { chatSystemPrompt } from "@/lib/prompts";
+import { chatSystemPrompt, finalResultPrompt } from "@/lib/prompts";
 import { withRetry } from "../retryUtils";
 import { parseSteps } from "../workflowUtils";
 import { extractTextFromMessage } from "../requestUtils";
@@ -174,11 +174,7 @@ async function processFinalStep(
             ...messages,
             {
               role: "user",
-              content: `
-                PREVIOUS_CONTEXT: ${state.context.join("\n") || "None"}
-                CURRENT_STEP: ${lastStep}
-                Generate the final answer for the user based on the PREVIOUS_CONTEXT, the CURRENT_STEP, and the file that was provided.
-              `,
+              content: finalResultPrompt(state, lastStep, true),
             },
           ],
           onFinish: () => {
@@ -202,11 +198,7 @@ async function processFinalStep(
           model: bedrock(MODEL_CONSTANTS.ANTHROPIC.REASONING),
           system: chatSystemPrompt(),
           temperature: 0,
-          prompt: `
-            PREVIOUS_CONTEXT: ${state.context.join("\n") || "None"}
-            CURRENT_STEP: ${lastStep}
-            Generate the final answer for the user based on the PREVIOUS_CONTEXT and the CURRENT_STEP.
-          `,
+          prompt: finalResultPrompt(state, lastStep, false),
           onFinish: () => {
             logger.warn("⚠️ Final text stream finished, marking complete");
             dataStream.writeData({
