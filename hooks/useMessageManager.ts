@@ -135,7 +135,10 @@ export function useMessageManager({
 
 					// Clean markdown bold from assistant messages
 					if (apiMsg.role === "assistant") {
+						// replace bold
 						content = content.replace(/(\*\*|__)(.*?)\1/g, "$2");
+						// remove markdown titles (e.g., # Title, ## Subtitle, etc.)
+						content = content.replace(/^#{1,6}\s.*$/gm, "");
 					}
 
 					// deep copy of currentApiData
