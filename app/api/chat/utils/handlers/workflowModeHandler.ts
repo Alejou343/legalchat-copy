@@ -1,6 +1,12 @@
 import { openai } from "@ai-sdk/openai";
 import { anthropic } from "@ai-sdk/anthropic";
-import { createDataStreamResponse, type DataStreamWriter, streamText, generateText, type CoreMessage } from "ai";
+import {
+  createDataStreamResponse,
+  type DataStreamWriter,
+  streamText,
+  generateText,
+  type CoreMessage,
+} from "ai";
 import logger from "@/lib/logger";
 import { chatSystemPrompt, finalResultPrompt } from "@/lib/prompts";
 import { withRetry } from "../retryUtils";
@@ -8,12 +14,16 @@ import { parseSteps } from "../workflowUtils";
 import { extractTextFromMessage } from "../requestUtils";
 import { MODEL_CONSTANTS } from "../../constants/models";
 import { bedrock } from "@ai-sdk/amazon-bedrock";
+
 /**
- * Process workflow mode requests
+ * Main workflow processing function (entry point)
  */
-export async function processWorkflowMode(messages: CoreMessage[], hasFile: boolean) {
+export async function processWorkflowMode(
+  messages: CoreMessage[],
+  hasFile: boolean
+) {
   logger.warn("⚠️ Starting workflow mode processing");
-  
+
   return createDataStreamResponse({
     async execute(dataStream: DataStreamWriter) {
       try {
@@ -47,7 +57,10 @@ export async function processWorkflowMode(messages: CoreMessage[], hasFile: bool
         // Process final step
         await processFinalStep(state, dataStream, messages, hasFile);
       } catch (error) {
-        logger.error(`❌ Error during workflow processing${hasFile ? ' with file' : ''}`, error);
+        logger.error(
+          `❌ Error during workflow processing${hasFile ? " with file" : ""}`,
+          error
+        );
         try {
           logger.warn("⚠️ Writing error to data stream");
           dataStream.writeData({ error: "Workflow processing failed" });
@@ -66,7 +79,12 @@ export async function processWorkflowMode(messages: CoreMessage[], hasFile: bool
  * Process intermediate workflow steps
  */
 async function processIntermediateSteps(
-  state: { steps: string[], currentStep: number, totalSteps: number, context: string[] },
+  state: {
+    steps: string[];
+    currentStep: number;
+    totalSteps: number;
+    context: string[];
+  },
   dataStream: DataStreamWriter,
   messages: CoreMessage[],
   hasFile: boolean
@@ -76,35 +94,49 @@ async function processIntermediateSteps(
     state.currentStep = i;
     logger.warn(`⚠️ Processing step ${i + 1}/${state.totalSteps}: ${step}`);
 
-    // Update data stream with current step
-    logger.warn(`⚠️ Writing step ${i} progress to stream`);
     dataStream.writeData({
       workflowSteps: state.steps,
       currentStep: i,
       isComplete: false,
     });
-    logger.info(`✅ Step ${i} progress written successfully`);
 
-    // Generate text for current step
-    logger.warn(`⚠️ Generating text for step ${i}${hasFile ? ' with file' : ''}`);
-    
-    // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
-        let result;
+    let result;
     if (hasFile) {
-      // Use Anthropic for file-related steps
       result = await withRetry(
         () =>
           generateText({
-            // model: anthropic(MODEL_CONSTANTS.ANTHROPIC.DEFAULT),
             model: bedrock(MODEL_CONSTANTS.ANTHROPIC.REASONING),
+            providerOptions: {
+              bedrock: {
+                reasoningConfig: {
+                  type: "enabled",
+                  budgetTokens: 1024,
+                },
+              },
+            },
             messages: [
               ...messages,
               {
                 role: "user",
                 content: `
-                  PREVIOUS_CONTEXT: ${state.context.join("\n") || "None"}
-                  CURRENT_STEP: ${step}
-                  Please analyze the file provided and complete this step.
+                  LEGAL DOCUMENT DRAFTING INSTRUCTIONS:
+                  You are drafting section ${i + 1} of ${
+                  state.totalSteps
+                } for a formal legal letter.
+                  
+                  PREVIOUS SECTIONS: ${state.context.join("\n") || "None"}
+                  
+                  CURRENT SECTION REQUIREMENTS:
+                  ${step}
+                  
+                  FORMAT RULES:
+                  - Begin with "[SECTION ${i + 1}: ${
+                  step.split(":")[0] || step
+                }]"
+                  - Use complete sentences
+                  - Include statutory references
+                  - Add "Important Note:" where applicable
+                  - Maintain formal tone
                 `,
               },
             ],
@@ -112,27 +144,43 @@ async function processIntermediateSteps(
         `Workflow step ${i} with file`
       );
     } else {
-      // Use OpenAI for non-file steps
       result = await withRetry(
         () =>
           generateText({
-            // model: openai(MODEL_CONSTANTS.OPENAI.DEFAULT),
             model: bedrock(MODEL_CONSTANTS.ANTHROPIC.REASONING),
+            providerOptions: {
+              bedrock: {
+                reasoningConfig: {
+                  type: "enabled",
+                  budgetTokens: 1024,
+                },
+              },
+            },
             system: chatSystemPrompt(),
             prompt: `
-              PREVIOUS_CONTEXT: ${state.context.join("\n") || "None"}
-              CURRENT_STEP: ${step}
+              LEGAL DOCUMENT SECTION DRAFTING:
+              Draft only section ${i + 1} of ${
+              state.totalSteps
+            } for the formal letter.
+              
+              SECTION REQUIREMENTS:
+              ${step}
+              
+              PREVIOUS CONTEXT:
+              ${state.context.join("\n") || "None"}
+              
+              OUTPUT REQUIREMENTS:
+              - Begin with clear section header
+              - Include all legal elements
+              - Use proper citations
+              - Maintain consistent format
             `,
           }),
         `Workflow step ${i}`
       );
     }
-
-    logger.info(`✅ Text generated successfully for step ${i}`);
-
-    // Update context with result
-    state.context.push(result.text);
-    logger.info(`ℹ️ Context updated with step ${i} result`);
+    // Add section marker to context
+    state.context.push(`${result.text}`);
   }
 }
 
@@ -140,81 +188,90 @@ async function processIntermediateSteps(
  * Process final workflow step
  */
 async function processFinalStep(
-  state: { steps: string[], currentStep: number, totalSteps: number, context: string[] },
+  state: {
+    steps: string[];
+    currentStep: number;
+    totalSteps: number;
+    context: string[];
+  },
   dataStream: DataStreamWriter,
   messages: CoreMessage[],
   hasFile: boolean
 ) {
   const lastStep = state.steps[state.steps.length - 1];
   state.currentStep = state.steps.length - 1;
-  logger.warn(`⚠️ Processing final step${hasFile ? ' with file' : ''}: ${lastStep}`);
 
-  // Update data stream with final step
-  logger.warn("⚠️ Writing final step progress to stream");
   dataStream.writeData({
     workflowSteps: state.steps,
     currentStep: state.currentStep,
     isComplete: false,
   });
-  logger.info("✅ Final step progress written successfully");
 
-  // Generate text for final step
-  logger.warn(`⚠️ Generating final text stream${hasFile ? ' with file' : ''}`);
-  
-  // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
-    let finalResult;
+  let finalResult;
   if (hasFile) {
-    // Use Anthropic for file-related final step
     finalResult = await withRetry(
       async () =>
         streamText({
-          // model: anthropic(MODEL_CONSTANTS.ANTHROPIC.DEFAULT),
           model: bedrock(MODEL_CONSTANTS.ANTHROPIC.REASONING),
           messages: [
             ...messages,
             {
               role: "user",
-              content: finalResultPrompt(state, lastStep, true),
+              content: `
+                FINAL LEGAL LETTER ASSEMBLY INSTRUCTIONS:
+                Combine all sections into properly formatted legal letter:
+                
+                ${state.context.join("\n\n")}
+                
+                FINAL SECTION REQUIREMENTS:
+                ${lastStep}
+                
+                STRICT FORMATTING:
+                ${finalResultPrompt(state, lastStep, true)}
+              `,
             },
           ],
           onFinish: () => {
-            logger.warn("⚠️ Final text stream finished, marking complete");
             dataStream.writeData({
               workflowSteps: state.steps,
               currentStep: state.currentStep,
               isComplete: true,
             });
-            logger.info("✅ Workflow marked as complete in data stream");
           },
         }),
       "Final workflow step with file"
     );
   } else {
-    // Use OpenAI for non-file final step
     finalResult = await withRetry(
       async () =>
         streamText({
-          // model: openai(MODEL_CONSTANTS.OPENAI.DEFAULT),
           model: bedrock(MODEL_CONSTANTS.ANTHROPIC.REASONING),
           system: chatSystemPrompt(),
           temperature: 0,
-          prompt: finalResultPrompt(state, lastStep, false),
+          prompt: `
+            FINAL LEGAL DOCUMENT PREPARATION:
+            Assemble all sections into complete formal letter:
+            
+            DOCUMENT SECTIONS:
+            ${state.context.join("\n\n")}
+            
+            FINAL SECTION:
+            ${lastStep}
+            
+            FORMATTING REQUIREMENTS:
+            ${finalResultPrompt(state, lastStep, false)}
+          `,
           onFinish: () => {
-            logger.warn("⚠️ Final text stream finished, marking complete");
             dataStream.writeData({
               workflowSteps: state.steps,
               currentStep: state.currentStep,
               isComplete: true,
             });
-            logger.info("✅ Workflow marked as complete in data stream");
           },
         }),
       "Final workflow step"
     );
   }
 
-  // Merge final result into data stream
-  logger.warn("⚠️ Merging final result into data stream");
   finalResult.mergeIntoDataStream(dataStream);
-  logger.info("✅ Final result merged into data stream successfully");
 }
