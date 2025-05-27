@@ -149,7 +149,7 @@ CC: [If applicable]
 Enc: [If applicable]
 
 7. FINAL REQUIREMENTS:
-- Flesch reading ease score: 70-80
+- Flesch reading ease score: 10-20
 - No informal language
 - Complete legal analysis
 - All statutory references verified
