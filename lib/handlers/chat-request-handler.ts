@@ -7,6 +7,8 @@ import { streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { buildSystemPrompt } from "../prompts";
 import { rewriteUserQuery } from "../utils/reformulate-query";
+import { MODEL_CONSTANTS } from "@/app/api/chat/constants/models";
+import { bedrock } from "@ai-sdk/amazon-bedrock";
 
 export async function handleChatRequest(messages: any, resource_id: string) {
   try {
@@ -40,7 +42,8 @@ export async function handleChatRequest(messages: any, resource_id: string) {
     const prompt = buildSystemPrompt(combinedChunks, lastUserMessage);
 
     const result = streamText({
-      model: openai("gpt-4o"),
+      // model: openai(MODEL_CONSTANTS.OPENAI.DEFAULT),
+      model: bedrock(MODEL_CONSTANTS.ANTHROPIC.REASONING),
       system: prompt,
       temperature: 0.4,
       maxSteps: 5,

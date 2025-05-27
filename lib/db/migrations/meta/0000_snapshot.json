@@ -1,5 +1,5 @@
 {
-  "id": "a1ff57e4-0bde-4ae0-9c55-ce38244be9d1",
+  "id": "77f24022-d538-4f8f-b80f-f2051124a53f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -20,6 +20,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "user_email": {
+          "name": "user_email",
+          "type": "varchar(191)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "content": {
           "name": "content",
           "type": "text",
@@ -28,9 +34,23 @@
         },
         "embedding": {
           "name": "embedding",
-          "type": "vector(1536)",
+          "type": "vector(1024)",
           "primaryKey": false,
           "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {
@@ -78,6 +98,12 @@
           "type": "varchar(191)",
           "primaryKey": true,
           "notNull": true
+        },
+        "user_email": {
+          "name": "user_email",
+          "type": "varchar(191)",
+          "primaryKey": false,
+          "notNull": false
         },
         "content": {
           "name": "content",

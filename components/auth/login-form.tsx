@@ -45,6 +45,7 @@ export function LoginForm() {
 
       // Refresh the page to update the session
       router.refresh()
+      localStorage.setItem('sessionId', email)
       router.push('/')
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     } catch (error: any) {

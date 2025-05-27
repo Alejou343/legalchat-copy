@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   logger.warn("⚠️ Procesando solicitud POST");
 
   if (contentType.includes("multipart/form-data")) {
-    return handlePdfUpload(req);
+    // return handlePdfUpload(req);
   }
 
   try {

@@ -9,9 +9,7 @@ import { Scale, Wand2, Gavel, Upload, CheckCircle2 } from "lucide-react";
 // Custom Hooks
 import { useChatMode, type ChatMode } from "@/hooks/useChatMode";
 import { useFileUpload } from "@/hooks/useFileUpload";
-import {
-	useMessageManager,
-} from "@/hooks/useMessageManager";
+import { useMessageManager } from "@/hooks/useMessageManager";
 import { useChatAPI } from "@/hooks/useChatAPI";
 import { useChatSubmit } from "@/hooks/useChatSubmit";
 import { useTextareaAutoResize } from "@/hooks/useTextareaAutoResize";
@@ -27,8 +25,9 @@ import FileDisplay from "@/components/FileDisplay";
 export default function ChatPage() {
 	// --- Custom Hooks ---
 	const { chatMode, toggleChatMode, setChatMode } = useChatMode("default");
-	const [ hasFile, setHasFile ] = useState(false);
-	
+	const [everHadFile, setEverHadFile] = useState(false);
+	const [hasFile, setHasFile] = useState(false);
+
 	const {
 		selectedFile,
 		setSelectedFile,
@@ -41,19 +40,21 @@ export default function ChatPage() {
 		uploadSuccess,
 		setUploadSuccess,
 	} = useFileUpload();
-	
-	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
-		useEffect(()=>{
-		if(!hasFile && uploadSuccess){
-			setHasFile(true);
+
+
+	useEffect(() => {
+		if (selectedFile && !everHadFile) {
+			setEverHadFile(true);
 		}
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [uploadSuccess]);
+		setHasFile(everHadFile || Boolean(selectedFile));
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [selectedFile, everHadFile]);
 
 	const chatAPI = useChatAPI({
 		// Encapsulates Vercel's useChat
 		chatMode,
 		hasFile,
+		email: '',
 		onSuccess: () => {
 			setSelectedFile(null); // Clear selected file after successful assistant response
 			setFilePreview(null); // Clear preview as well
@@ -106,21 +107,24 @@ export default function ChatPage() {
 			if (typeof message.content === "string") {
 				result = await chatAPI.append({
 					role: message.role,
-					content: message.content
+					content: message.content,
 				});
 			} else if (Array.isArray(message.content)) {
-				result = await chatAPI.append({
-					role: message.role,
-					content: message.content[0].text ?? "",
-					parts: [
-						{ type: "text", text: message.content[0].text ?? "" },
-						{
-							type: "file",
-							mimeType: message.content[1].mimeType ?? "",
-							data: message.content[1].data ?? "",
-						},
-					],
-				}, options);
+				result = await chatAPI.append(
+					{
+						role: message.role,
+						content: message.content[0].text ?? "",
+						parts: [
+							{ type: "text", text: message.content[0].text ?? "" },
+							{
+								type: "file",
+								mimeType: message.content[1].mimeType ?? "",
+								data: message.content[1].data ?? "",
+							},
+						],
+					},
+					options,
+				);
 			}
 
 			return result === null ? undefined : result;
@@ -155,24 +159,24 @@ export default function ChatPage() {
 		setFilePreview(null);
 	};
 
-	  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
-	  useEffect(() => {
-    const handleResetChat = () => {
-		handleClearSelectedFile();
-		chatAPI.setMessages([]);
-		chatAPI.setInput("");
-		setDisplayMessages([]);
-		setEditingMessageId(null);
-		setSelectedFile(null);
-		setFilePreview(null);
-		setHasFile(false);
-		setChatMode("default");
-    };
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+	useEffect(() => {
+		const handleResetChat = () => {
+			handleClearSelectedFile();
+			chatAPI.setMessages([]);
+			chatAPI.setInput("");
+			setDisplayMessages([]);
+			setEditingMessageId(null);
+			setSelectedFile(null);
+			setFilePreview(null);
+			setHasFile(false);
+			setChatMode("default");
+		};
 
-    window.addEventListener('resetChat', handleResetChat);
-    return () => window.removeEventListener('resetChat', handleResetChat);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+		window.addEventListener("resetChat", handleResetChat);
+		return () => window.removeEventListener("resetChat", handleResetChat);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	return (
 		<TooltipProvider delayDuration={100}>

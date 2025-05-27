@@ -1,3 +1,4 @@
+import { MODEL_CONSTANTS } from "@/app/api/chat/constants/models";
 import { OpenAI } from "openai";
 
 const openai = new OpenAI({
@@ -12,7 +13,7 @@ export const rewriteUserQuery = async (
 ): Promise<string> => {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: MODEL_CONSTANTS.OPENAI.CHEAPEST,
       messages: [
         {
           role: "system",
