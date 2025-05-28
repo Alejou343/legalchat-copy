@@ -109,12 +109,27 @@ Never invent information beyond what's in the context.
 `.trim();
 };
 
-export const finalResultPrompt = (
-  state: any,
+interface FinalPromptState {
+  context: string[];
+}
+
+export const buildFinalLegalLetterPrompt = (
+  state: FinalPromptState,
   lastStep: string,
   hasFile: boolean
-) => {
-  return `
+): string => {
+  const sections = [
+    `# FINAL LEGAL LETTER ASSEMBLY`,
+    `Please combine the following sections into a single, fully formatted legal letter for the client.`,
+    ``,
+    `## DOCUMENT SECTIONS`,
+    state.context.length > 0 ? state.context.join("\n\n") : "None",
+    ``,
+    `## FINAL SECTION`,
+    lastStep,
+    ``,
+    `## FORMATTING AND OUTPUT REQUIREMENTS`,
+    `
 # ROLE
 You are an expert immigration attorney drafting the final version of a formal legal letter to a client.
 
@@ -124,22 +139,22 @@ Write a professional, legally sound, and empathetic letter that flows as a natur
 # STRUCTURE
 - Start with: [Law Firm Letterhead], [Date], [Client Address Block], Re: [Case Reference]
 - Use: "Dear Client:"
-- Continue with full paragraphs only — do NOT use section titles or numbers (e.g. no "1. NOTICE TO APPEAR")
-- Use smooth transitions between topics, like in real legal letters
+- Continue with full paragraphs only — do NOT use section titles or numbers
+- Use smooth transitions between topics
 - End with: "Sincerely," followed by attorney signature block
 - Optional attachments listed as "Enc:"
 
 # STYLE RULES
-- Do NOT include headings like "SECTION X" or "PART 1"
-- Do NOT use bullet points unless summarizing steps
-- Do NOT use informal tone or contractions
-- All statutory references must be accurate and cited when used (e.g. INA §240A(b))
-- Keep Flesch reading ease between 10–20
-- Avoid legalese where possible — aim for clarity, not complexity
-- DO NOT use [brackets] or <placeholders> — if info is missing, skip or refer to it generically
+- No section headings or numbered parts
+- Avoid bullet points (unless summarizing steps)
+- No informal tone or contractions
+- Cite statutes correctly (e.g. INA §240A(b))
+- Maintain Flesch reading ease between 10–20
+- Avoid legalese — clarity over complexity
+- No brackets/placeholders — omit or generalize missing info
 
 # CONTEXT
-${state.context.join("\n\n---\n\n") || "None"}
+${state.context.length > 0 ? state.context.join("\n\n---\n\n") : "None"}
 
 # CURRENT STEP
 ${lastStep}
@@ -147,9 +162,12 @@ ${lastStep}
 ${hasFile ? "📎 A file has been provided. Use it only if relevant to this step." : ""}
 
 # INSTRUCTIONS
-Use your legal reasoning to integrate the above context and step into a single, coherent letter written directly to the client. Anticipate their concerns, explain legal issues clearly, and maintain a supportive, professional tone.
+Use legal reasoning to integrate the context and step into a single, coherent letter written directly to the client. Anticipate concerns, explain legal issues clearly, and maintain a professional tone.
 
 # OUTPUT
 One continuous letter, ready to be signed and sent.
-`.trim();
+    `.trim()
+  ];
+
+  return sections.join("\n\n").trim();
 };
