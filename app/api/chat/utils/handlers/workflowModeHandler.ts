@@ -8,7 +8,7 @@ import {
   type CoreMessage,
 } from "ai";
 import logger from "@/lib/logger";
-import { chatSystemPrompt, finalResultPrompt } from "@/lib/prompts";
+import { buildFinalLegalLetterPrompt, chatSystemPrompt } from "@/lib/prompts";
 import { withRetry } from "../retryUtils";
 import { parseSteps } from "../workflowUtils";
 import { extractTextFromMessage } from "../requestUtils";
@@ -217,18 +217,7 @@ async function processFinalStep(
             ...messages,
             {
               role: "user",
-              content: `
-                FINAL LEGAL LETTER ASSEMBLY INSTRUCTIONS:
-                Combine all sections into properly formatted legal letter:
-                
-                ${state.context.join("\n\n")}
-                
-                FINAL SECTION REQUIREMENTS:
-                ${lastStep}
-                
-                STRICT FORMATTING:
-                ${finalResultPrompt(state, lastStep, true)}
-              `,
+              content: buildFinalLegalLetterPrompt(state, lastStep, hasFile),
             },
           ],
           onFinish: () => {
@@ -248,19 +237,7 @@ async function processFinalStep(
           model: bedrock(MODEL_CONSTANTS.ANTHROPIC.REASONING),
           system: chatSystemPrompt(),
           temperature: 0,
-          prompt: `
-            FINAL LEGAL DOCUMENT PREPARATION:
-            Assemble all sections into complete formal letter:
-            
-            DOCUMENT SECTIONS:
-            ${state.context.join("\n\n")}
-            
-            FINAL SECTION:
-            ${lastStep}
-            
-            FORMATTING REQUIREMENTS:
-            ${finalResultPrompt(state, lastStep, false)}
-          `,
+          prompt: buildFinalLegalLetterPrompt(state, lastStep, hasFile),
           onFinish: () => {
             dataStream.writeData({
               workflowSteps: state.steps,
