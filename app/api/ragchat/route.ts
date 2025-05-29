@@ -1,10 +1,36 @@
 import logger from "@/lib/logger";
-import { handlePdfUpload } from "@/lib/handlers/pdf-upload-handler";
+// import { handlePdfUpload } from "@/lib/handlers/pdf-upload-handler";
 // import { handleRagChatRequest } from "@/lib/handlers/rag-chat-handler";
 // import { handleWorkflowChatRequest } from "@/lib/handlers/workflow-chat-handler";
 // import { handleDefaultChatRequest } from "@/lib/handlers/default-chat-handler";
 import type { NextRequest } from "next/server";
 import { handleChatRequest } from "@/lib/handlers/chat-request-handler";
+
+/**
+ * Handles POST requests for chat interactions supporting different chat modes.
+ *
+ * - Parses the request body expecting JSON with fields: `messages`, `resource_id`, and optional `chatMode`.
+ * - Supports chat modes: "rag", "workflow", and "default".
+ * - Logs the selected chat mode and routes to the appropriate handler.
+ * - Currently uses a temporary common handler `handleChatRequest` for all modes.
+ * - Handles multipart/form-data content type for file uploads (currently commented out).
+ *
+ * @param {NextRequest} req - Incoming Next.js request object.
+ *
+ * @returns {Promise<Response>} The response from the chat handler or an error response for invalid JSON.
+ *
+ * @throws {Response} Returns 400 status if the JSON parsing fails.
+ *
+ * @example
+ * // POST /api/chat
+ * // Request body:
+ * // {
+ * //   "messages": [...],
+ * //   "resource_id": "123",
+ * //   "chatMode": "workflow"
+ * // }
+ * // Response: Depends on handler implementation.
+ */
 
 export async function POST(req: NextRequest) {
   const contentType = req.headers.get("content-type") || "";

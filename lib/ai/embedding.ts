@@ -7,6 +7,14 @@ import logger from "../logger";
 import { bedrock } from "@ai-sdk/amazon-bedrock";
 import { MODEL_CONSTANTS } from "@/app/api/chat/constants/models";
 
+/**
+ * Splits the input text into chunks based on numbered headers like "1. Section Title".
+ * Returns an array of non-empty trimmed chunks.
+ * 
+ * @param {string} input - The full text to be chunked.
+ * @returns {string[]} An array of string chunks extracted from the input.
+ */
+
 export const generateChunks = (input: string): string[] => {
   // Divide por encabezados como "1. Background", "2. Migration Journey", etc.
   const rawSections = input.split(/(?=\d+\.\s[A-Z][^\n]+)/g);
@@ -23,6 +31,15 @@ export const generateChunks = (input: string): string[] => {
   return chunks;
 };
 
+/**
+ * Generates embeddings for multiple chunks of text.
+ * It first splits the input into chunks, then generates embeddings for each chunk using the embedding model.
+ * 
+ * @param {string} value - The full text to embed.
+ * @returns {Promise<Array<{ embedding: number[]; content: string }>>} 
+ *   A promise that resolves to an array of objects containing each chunk's content and its embedding vector.
+ */
+
 export const generateEmbeddings = async (
   value: string
 ): Promise<Array<{ embedding: number[]; content: string }>> => {
@@ -35,6 +52,14 @@ export const generateEmbeddings = async (
   return embeddings.map((e, i) => ({ content: chunks[i], embedding: e }));
 };
 
+/**
+ * Generates an embedding vector for a single input string.
+ * Replaces newline characters with spaces before generating the embedding.
+ * 
+ * @param {string} value - The string to embed.
+ * @returns {Promise<number[]>} A promise that resolves to the embedding vector as an array of numbers.
+ */
+
 export const generateEmbedding = async (value: string): Promise<number[]> => {
   const input = value.replaceAll("\\n", " ");
   const { embedding } = await embed({
@@ -44,6 +69,18 @@ export const generateEmbedding = async (value: string): Promise<number[]> => {
   });
   return embedding;
 };
+
+/**
+ * Finds relevant content chunks from embeddings that match a user's query.
+ * It generates an embedding for the query, then performs a similarity search
+ * against stored embeddings filtered by resource ID and a similarity threshold.
+ * Returns the most similar chunks ordered by similarity.
+ * 
+ * @param {string} userQuery - The user's input query string.
+ * @param {string} resource_id - The resource ID to filter embeddings.
+ * @returns {Promise<Array<{ name: string; similarity: number }>>} 
+ *   A promise that resolves to an array of objects with content and similarity score.
+ */
 
 export const findRelevantContent = async (
   userQuery: string,
@@ -97,6 +134,15 @@ export const findRelevantContent = async (
     return []; // o podrías lanzar el error si quieres que lo maneje el caller
   }
 };
+
+/**
+ * Retrieves the top N chunks associated with a specific resource ID without applying similarity filtering.
+ * This returns the first N chunks stored for the resource.
+ * 
+ * @param {string} resource_id - The resource ID to query chunks for.
+ * @param {number} [limit=4] - The maximum number of chunks to retrieve (default is 4).
+ * @returns {Promise<Array<{ name: string }>>} A promise that resolves to an array of objects containing the chunk content.
+ */
 
 export const getTopChunksByResourceId = async (
   resource_id: string,

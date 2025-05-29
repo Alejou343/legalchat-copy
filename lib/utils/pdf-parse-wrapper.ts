@@ -12,6 +12,17 @@ const PdfParse = require('pdf-parse/lib/pdf-parse.js'); // Importación directa 
 // Restaurar entorno original
 originalEnv = "development";
 
+/**
+ * Parses PDF content from a buffer using the pdf-parse library.
+ * 
+ * This implementation forces production mode and disables automatic test execution
+ * by directly importing the parser from 'pdf-parse/lib/pdf-parse.js'.
+ * 
+ * @param {Buffer} buffer - The PDF file content as a buffer.
+ * @returns {Promise<string>} - Resolves with extracted text content from the PDF.
+ * @throws {Error} Throws an error if PDF parsing fails.
+ */
+
 export const parsePdf = async (buffer: Buffer) => {
   try {
     const data = await PdfParse(buffer);

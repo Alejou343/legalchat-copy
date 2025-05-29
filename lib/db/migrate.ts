@@ -1,5 +1,15 @@
-import { env } from "@/lib/env.mjs";
+/**
+ * Script to run database migrations using Drizzle ORM's migrator for PostgreSQL.
+ *
+ * It:
+ * - Validates the presence of DATABASE_URL environment variable.
+ * - Connects to the PostgreSQL database.
+ * - Executes migrations found in the specified migrations folder.
+ * - Logs the migration start and completion with elapsed time.
+ * - Exits the process with code 0 on success, or 1 on failure.
+ */
 
+import { env } from "@/lib/env.mjs";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";

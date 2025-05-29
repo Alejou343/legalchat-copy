@@ -1,6 +1,15 @@
+import logger from "@/lib/logger";
+
 /**
- * Retry configuration for API calls
+ * Configuration object for controlling retry behavior in API operations.
+ *
+ * @property {number} maxRetries - Maximum number of retry attempts.
+ * @property {number} initialDelayMs - Initial delay in milliseconds before the first retry.
+ * @property {number} maxDelayMs - Maximum allowed delay between retries in milliseconds.
+ * @property {number} backoffFactor - Multiplier for exponential backoff calculation.
+ * @property {number} jitterFactor - Random jitter factor to reduce retry collisions.
  */
+
 export const RETRY_CONFIG = {
   maxRetries: 5,
   initialDelayMs: 1000, // 1 second
@@ -10,13 +19,27 @@ export const RETRY_CONFIG = {
 };
 
 /**
- * Sleep function for delay in retries
+ * Utility function that pauses execution for a specified duration.
+ *
+ * @param {number} ms - Time in milliseconds to delay.
+ * @returns {Promise<void>} A promise that resolves after the specified delay.
+ *
+ * @example
+ * await sleep(2000); // Waits for 2 seconds
  */
+
 export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Calculate backoff delay with jitter
+ * Calculates the delay duration for a retry attempt using exponential backoff and jitter.
+ *
+ * @param {number} attempt - The current retry attempt number (starting from 0).
+ * @returns {number} The computed delay in milliseconds.
+ *
+ * @example
+ * const delay = calculateBackoffDelay(2); // Returns delay for third attempt
  */
+
 export function calculateBackoffDelay(attempt: number): number {
   const baseDelay = Math.min(
     RETRY_CONFIG.maxDelayMs,
@@ -29,9 +52,18 @@ export function calculateBackoffDelay(attempt: number): number {
 }
 
 /**
- * Retry wrapper for API calls
+ * Executes an asynchronous operation with automatic retries for retryable errors.
+ *
+ * @template T
+ * @param {() => Promise<T>} operation - The async operation to retry.
+ * @param {string} operationName - A descriptive name for logging purposes.
+ * @returns {Promise<T>} The result of the successful operation.
+ * @throws {unknown} If all retry attempts fail or a non-retryable error occurs.
+ *
+ * @example
+ * const result = await withRetry(() => fetchData(), 'FetchData');
  */
-import logger from "@/lib/logger";
+
 
 export async function withRetry<T>(
   operation: () => Promise<T>,

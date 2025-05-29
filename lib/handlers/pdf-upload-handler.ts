@@ -2,6 +2,26 @@ import { createResource } from "@/lib/actions/resources";
 import logger from "@/lib/logger";
 import { extractTextWithPdfParse } from "@/lib/utils/pdf-utils";
 
+/**
+ * Handles uploading and processing a PDF file encoded as base64 JSON,
+ * extracting text content, validating file size and type, and creating a resource record.
+ *
+ * @param {object} data - The input data containing the file info.
+ * @param {{ name: string; type: string; content: string }} data.file - PDF file metadata and base64 content.
+ * @param {string} email - The email of the user uploading the PDF.
+ * @returns {Promise<Response>} - JSON response indicating success or error details.
+ *
+ * Validations:
+ * - Ensures the file is present and is a PDF type.
+ * - Checks that the base64 content is a string.
+ * - Limits file size to 10MB.
+ *
+ * Process:
+ * - Extracts text from the PDF buffer.
+ * - Cleans up extracted text.
+ * - Creates a resource with the extracted content and user email.
+ */
+
 export async function handlePdfUpload(data: {
   file: {
     name: string;
@@ -53,6 +73,14 @@ export async function handlePdfUpload(data: {
     return jsonResponse({ error: "Error al procesar el documento PDF" }, 500);
   }
 }
+
+/**
+ * Helper function to build a JSON Response with given body and status code.
+ *
+ * @param {object} body - The response body object to be JSON-stringified.
+ * @param {number} [status=200] - HTTP status code of the response.
+ * @returns {Response} - A new Response object with JSON body and proper headers.
+ */
 
 function jsonResponse(body: object, status = 200): Response {
   return new Response(JSON.stringify(body), {
