@@ -233,14 +233,18 @@ ${state.context.length > 0 ? state.context.join("\n\n---\n\n") : "None"}
 # CURRENT STEP
 ${lastStep}
 
-${hasFile ? "📎 A file has been provided. Use it only if relevant to this step." : ""}
+${
+  hasFile
+    ? "📎 A file has been provided. Use it only if relevant to this step."
+    : ""
+}
 
 # INSTRUCTIONS
 Use legal reasoning to integrate the context and step into a single, coherent letter written directly to the client. Anticipate concerns, explain legal issues clearly, and maintain a professional tone.
 
 # OUTPUT
 One continuous letter, ready to be signed and sent.
-    `.trim()
+    `.trim(),
   ];
 
   return sections.join("\n\n").trim();
