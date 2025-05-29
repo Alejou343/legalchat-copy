@@ -1,5 +1,4 @@
 "use server";
-
 import {
   NewResourceParams,
   insertResourceSchema,
@@ -9,6 +8,28 @@ import { db } from "../db";
 import { generateEmbeddings } from "../ai/embedding";
 import { embeddings as embeddingsTable } from "../db/schema/embeddings";
 import logger from "../logger";
+
+/**
+ * Creates a new resource and generates embeddings for its content.
+ *
+ * - Validates the input using `insertResourceSchema`.
+ * - Inserts the resource into the database with the associated user email.
+ * - Generates embeddings for the resource content.
+ * - Stores the embeddings linked to the resource and user email.
+ *
+ * @param {NewResourceParams} input - The input data for the new resource, including `content` and `user_email`.
+ *
+ * @returns {Promise<{ message: string; resource_id: string | null }>} An object with a success message and the created resource ID,
+ * or an error message and `null` resource ID on failure.
+ *
+ * @example
+ * const input = {
+ *   content: "Example content",
+ *   user_email: "user@example.com",
+ * };
+ * const result = await createResource(input);
+ * console.log(result.message, result.resource_id);
+ */
 
 export const createResource = async (input: NewResourceParams) => {
   try {

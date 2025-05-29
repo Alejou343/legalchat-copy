@@ -6,7 +6,11 @@ const openai = new OpenAI({
 });
 
 /**
- * Reformula una consulta de usuario para que coincida mejor con los embeddings del documento.
+ * Reformulates a user query to better match document embeddings for semantic search.
+ *
+ * @param {string} originalQuery - The original user query.
+ * @returns {Promise<string>} - A reformulated, optimized query tailored for legal or migratory document language.
+ *                             If reformulation fails, returns the original query.
  */
 export const rewriteUserQuery = async (
   originalQuery: string
@@ -29,7 +33,7 @@ Reescribe la pregunta del usuario como una oración o frase que probablemente ap
 Si la pregunta es muy general, genera una descripción concreta que represente el contenido completo del documento.
 
 Responde solo con la consulta optimizada.
-`
+`,
         },
 
         {

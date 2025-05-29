@@ -1,3 +1,29 @@
+interface FinalPromptState {
+  context: string[];
+}
+
+/**
+ * Returns a prompt for a model specialized in extracting up to 5 clear legal steps
+ * from a given input text.
+ *
+ * Instructions:
+ * - Focus exclusively on legal document creation steps.
+ * - Identify key document sections.
+ * - Maintain legal terminology while standardizing structure.
+ * - Break down complex legal actions into procedural steps.
+ * - Ignore conversational or non-actionable content.
+ *
+ * Example:
+ * Input: "write a letter explaining options after NTA including voluntary departure, cancellation, and asylum"
+ * Output: [
+ *   "draft letter introduction explaining NTA implications",
+ *   "explain voluntary departure option with legal requirements",
+ *   "detail cancellation of removal eligibility criteria",
+ *   "describe asylum process and requirements",
+ *   "include common court pitfalls and judge questions"
+ * ]
+ */
+
 export const parseStepsSystemPrompt = () => {
   return `
 You are a highly skilled task analyzer specialized in legal workflows. Your job is to extract a concise, ordered list of up to 5 actionable steps from a user input for legal document preparation.
@@ -22,6 +48,15 @@ Output: [
 ]
 `.trim();
 };
+
+/**
+ * Returns a prompt for anonymizing text while preserving the original format.
+ *
+ * Rules:
+ * - Do not answer questions or provide advice.
+ * - Anonymize entities: person, location, organization, identity.
+ * - Replace anonymized entities with tags: <person>, <location>, <organization>, <identity>.
+ */
 
 export const pseudonimizationSystemPrompt = () => {
   return `
@@ -49,6 +84,16 @@ export const pseudonimizationSystemPrompt = () => {
       - <identity>
       `;
 };
+
+/**
+ * Returns a prompt defining the format and style for a legal letter drafting assistant.
+ *
+ * Requirements:
+ * - Letterhead, date line, client address block, case reference line.
+ * - Formal salutation and professional closing.
+ * - Numbered sections for legal topics, legal citations, notes, and warnings.
+ * - Flesch readability 70-80, one idea per paragraph, bold and underline formatting as appropriate.
+ */
 
 export const chatSystemPrompt = () => {
   return `
@@ -84,6 +129,20 @@ STYLE REQUIREMENTS:
 `.trim();
 };
 
+/**
+ * Builds a prompt for an assistant that:
+ * 1. Analyzes whether the context contains relevant information for the question.
+ * 2. If relevant, synthesizes a clear answer with implicit references.
+ * 3. If not, responds based on base knowledge.
+ * 4. For ambiguous questions, mentions possible related content and asks clarifying questions.
+ *
+ * Parameters:
+ * @param context Array of objects with a 'name' property representing context items.
+ * @param question The user question to answer.
+ *
+ * @returns A complete prompt string.
+ */
+
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
 export const buildSystemPrompt = (context: any[], question: string): string => {
   return `
@@ -109,9 +168,24 @@ Never invent information beyond what's in the context.
 `.trim();
 };
 
-interface FinalPromptState {
-  context: string[];
-}
+/**
+ * Builds a prompt to generate a polished, formal legal letter.
+ *
+ * Parameters:
+ * @param state State object containing the context sections.
+ * @param lastStep The final instruction or content section to include.
+ * @param hasFile Boolean indicating if a file attachment is provided (use only if relevant).
+ *
+ * Formatting rules:
+ * - Formal letter with no visible headings or numbered sections.
+ * - Natural, empathetic tone and smooth topic transitions.
+ * - Correct citation of statutes.
+ * - Flesch readability score between 10-20.
+ * - Avoid overly technical legal jargon.
+ * - Omit placeholders or missing info; generalize if necessary.
+ *
+ * @returns The full prompt string ready for an LLM.
+ */
 
 export const buildFinalLegalLetterPrompt = (
   state: FinalPromptState,

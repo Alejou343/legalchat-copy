@@ -2,6 +2,17 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
+/**
+ * Middleware to handle user authentication and redirect accordingly.
+ *
+ * - Checks user session via Supabase auth.
+ * - Redirects unauthenticated users trying to access protected routes to '/auth/login'.
+ * - Redirects authenticated users away from '/auth/login' to the home page ('/').
+ *
+ * @param {NextRequest} request - The incoming Next.js request object.
+ * @returns {Promise<NextResponse>} A NextResponse object, either continuing the request or redirecting.
+ */
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request: {
@@ -51,6 +62,13 @@ export async function middleware(request: NextRequest) {
 
   return response
 }
+
+/**
+ * Middleware config: applies middleware to all routes except:
+ * - API routes (/api)
+ * - Next.js static files (_next/static, _next/image)
+ * - favicon.ico
+ */
 
 export const config = {
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],

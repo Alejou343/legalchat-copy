@@ -1,9 +1,27 @@
-import { groq } from "@ai-sdk/groq";
 import { generateText } from "ai";
 import logger from "@/lib/logger";
 import { pseudonimizationSystemPrompt } from "@/lib/prompts";
 import { MODEL_CONSTANTS } from "../chat/constants/models";
 import { bedrock } from "@ai-sdk/amazon-bedrock";
+
+/**
+ * Handles POST requests to anonymize text messages.
+ *
+ * Expects a JSON body with a "message" field containing the text to anonymize.
+ *
+ * Uses an AI model to pseudonymize sensitive information in the text.
+ *
+ * @param {Request} req - The incoming request object.
+ *
+ * @returns {Promise<Response>} JSON response containing the anonymized message,
+ * original message length, and anonymized message length,
+ * or an error message if processing fails.
+ *
+ * @example
+ * // POST /api/anonymize
+ * // Request body: { "message": "Sensitive text to anonymize" }
+ * // Response: { "message": "Anonymized text", "originalLength": 25, "anonymizedLength": 24 }
+ */
 
 export async function POST(req: Request) {
   try {

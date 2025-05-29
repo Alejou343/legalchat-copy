@@ -1,11 +1,24 @@
 import logger from "@/lib/logger";
-import { z } from "zod";
 import type { NextRequest } from "next/server";
 import type { CoreMessage, CoreUserMessage } from "ai";
 
 /**
- * Validates and parses the incoming request
+ * Validates and parses the incoming HTTP request body.
+ *
+ * @param {NextRequest} req - The incoming Next.js request object.
+ * @returns {Promise<{
+ *   messages: CoreMessage[],
+ *   mode: string,
+ *   hasFile: boolean,
+ *   data: Record<string, any>,
+ *   email: string
+ * }>} An object containing parsed request data.
+ * @throws {Error} If the JSON body is invalid or cannot be parsed.
+ *
+ * @example
+ * const { messages, mode, hasFile, data, email } = await validateRequest(req);
  */
+
 export async function validateRequest(req: NextRequest) {
 	try {
 		const body = await req.json();
@@ -26,8 +39,17 @@ export async function validateRequest(req: NextRequest) {
 }
 
 /**
- * Prepares messages with file content
+ * Prepares user messages by including file content if provided.
+ *
+ * @param {CoreMessage[]} messages - Array of chat messages.
+ * @param {{ file?: { name: string, type: string, content: string } }} data - Optional file metadata and base64 content.
+ * @returns {Promise<CoreMessage[]>} Updated messages array including the file as a message.
+ * @throws {Error} If the file processing fails.
+ *
+ * @example
+ * const updatedMessages = await prepareFileMessage(messages, { file });
  */
+
 export async function prepareFileMessage(
 	messages: CoreMessage[],
 	data: {
@@ -90,8 +112,15 @@ export async function prepareFileMessage(
 }
 
 /**
- * Extract text content from a message
+ * Extracts plain text from a message regardless of its internal format.
+ *
+ * @param {CoreMessage} message - The message object to extract text from.
+ * @returns {string} The extracted text content.
+ *
+ * @example
+ * const text = extractTextFromMessage(message);
  */
+
 export function extractTextFromMessage(message: CoreMessage): string {
 	const content = message.content;
 

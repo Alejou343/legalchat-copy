@@ -1,5 +1,3 @@
-import { openai } from "@ai-sdk/openai";
-import { anthropic } from "@ai-sdk/anthropic";
 import {
   createDataStreamResponse,
   type DataStreamWriter,
@@ -16,8 +14,24 @@ import { MODEL_CONSTANTS } from "../../constants/models";
 import { bedrock } from "@ai-sdk/amazon-bedrock";
 
 /**
- * Main workflow processing function (entry point)
+ * Main entry point for processing a legal letter in workflow mode.
+ *
+ * This function:
+ * - Parses a list of steps from the user's message
+ * - Sends real-time data updates via a stream
+ * - Executes intermediate drafting steps
+ * - Generates a final section to complete the document
+ *
+ * It uses retry mechanisms and conditional model logic based on the presence of an uploaded file.
+ *
+ * @async
+ * @function
+ * @param {CoreMessage[]} messages - The list of user-assistant messages.
+ * @param {boolean} hasFile - Whether the user included a file in the request.
+ * @returns {Promise<Response>} A streaming response of the generated letter content and progress.
+ * @throws Will catch and stream any processing errors encountered during execution.
  */
+
 export async function processWorkflowMode(
   messages: CoreMessage[],
   hasFile: boolean
@@ -76,8 +90,25 @@ export async function processWorkflowMode(
 }
 
 /**
- * Process intermediate workflow steps
+ * Handles all intermediate steps in the legal document workflow.
+ *
+ * For each step:
+ * - Selects a model and generates text for the given section
+ * - Maintains context for accumulated content
+ * - Streams step-by-step progress updates
+ *
+ * @async
+ * @function
+ * @param {Object} state - The current workflow state, including steps, context, and step counters.
+ * @param {string[]} state.steps - Array of all parsed steps.
+ * @param {number} state.currentStep - Index of the current step being processed.
+ * @param {number} state.totalSteps - Total number of workflow steps.
+ * @param {string[]} state.context - Accumulated previous section content for context.
+ * @param {DataStreamWriter} dataStream - Stream interface to emit progress and data to client.
+ * @param {CoreMessage[]} messages - Full conversation history.
+ * @param {boolean} hasFile - Indicates whether a file was uploaded by the user.
  */
+
 async function processIntermediateSteps(
   state: {
     steps: string[];
@@ -185,8 +216,24 @@ async function processIntermediateSteps(
 }
 
 /**
- * Process final workflow step
+ * Finalizes the legal letter by generating the last section using the current context.
+ *
+ * Depending on the presence of a file:
+ * - Adjusts the prompt structure accordingly
+ * - Streams the final section and signals workflow completion
+ *
+ * @async
+ * @function
+ * @param {Object} state - The current workflow state, including context and step counters.
+ * @param {string[]} state.steps - Array of workflow steps.
+ * @param {number} state.currentStep - Index of the current step being processed.
+ * @param {number} state.totalSteps - Total number of workflow steps.
+ * @param {string[]} state.context - Accumulated context from previous steps.
+ * @param {DataStreamWriter} dataStream - Stream interface to emit progress and final content.
+ * @param {CoreMessage[]} messages - Full conversation history.
+ * @param {boolean} hasFile - Indicates whether a file was uploaded by the user.
  */
+
 async function processFinalStep(
   state: {
     steps: string[];

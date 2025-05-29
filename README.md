@@ -1,41 +1,111 @@
-# Vercel AI SDK useChat with Attachments Example
+# ⚖️ Legal Chat with Vercel AI SDK - Multi-Mode Example
 
-This example demonstrates how to use the [Vercel AI SDK](https://sdk.vercel.ai/docs) with [Next.js](https://nextjs.org/) with the `useChat` hook to create a chat interface that can send and receive multi-modal messages from the AI provider of your choice.
+This example demonstrates how to use the [Vercel AI SDK](https://sdk.vercel.ai/docs) with [Next.js](https://nextjs.org/) and the `useChat` hook to create a **legal chat interface** that supports **multi-modal messages** and three different modes of operation: **RAG**, **Default**, and **Workflow**.
 
-## Deploy your own
+---
+
+## 🚀 Features
+
+- **Three Chat Modes:**
+  - **RAG (Retrieval-Augmented Generation):** Combines document retrieval with AI generation for context-aware answers.
+  - **Default:** Basic chat mode with general AI responses.
+  - **Workflow:** Specialized chat flow for handling legal workflows and structured prompts.
+
+- **Multi-Modal Messaging:** Send and receive text, attachments, and files as part of the conversation.
+
+- **Flexible AI Provider Support:** Easily switch between AI providers like OpenAI or Anthropic by configuring API keys.
+
+---
+
+## 📦 How to run the project locally
+
+1. **Clone the repository or create a Next.js app from the example:**
+
+```bash
+npx create-next-app --example https://github.com/daanjiri/legalchat.git legal-chat
+`````
+
+Or using Yarn:
+
+```bash
+yarn create next-app --example https://github.com/daanjiri/legalchat.git legal-chat
+```
+
+Or using pnpm:
+
+```bash
+pnpm create next-app --example https://github.com/daanjiri/legalchat.git legal-chat
+```
+
+2. **Sign up and obtain API keys** for the AI providers you want to use (e.g., [OpenAI](https://platform.openai.com), [Anthropic](https://www.anthropic.com)).
+
+3. **Create a `.env` file** based on the `.env.example` and add your API keys and any required environment variables:
+
+```env
+OPENAI_API_KEY=""
+GROQ_API_KEY=""
+DATABASE_URL=""
+GOOGLE_GENERATIVE_AI_API_KEY=""
+ANTHROPIC_API_KEY=""
+AWS_ACCESS_KEY_ID=""
+AWS_SECRET_ACCESS_KEY=""
+AWS_REGION=""
+NEXT_PUBLIC_SUPABASE_URL=""
+NEXT_PUBLIC_SUPABASE_ANON_KEY=""
+```
+
+4. **Install dependencies:**
+
+```bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+```
+
+5. **Run the development server:**
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+```
+
+6. Open [http://localhost:3000](http://localhost:3000) to see the app in action.
+
+---
+
+## ⚙️ Chat Modes Explained
+
+### 1. RAG (Retrieval-Augmented Generation) Mode
+
+Uses external documents and knowledge bases to retrieve relevant information and combines it with AI-generated answers. Ideal for providing legal advice backed by specific documents.
+
+### 2. Default Mode
+
+Standard chat interface that interacts directly with the AI provider without document retrieval or specialized workflows. Suitable for quick, general legal questions.
+
+### 3. Workflow Mode
+
+Supports step-by-step legal workflows, structured prompts, and pre-built conversation templates to assist users with common legal processes or letter drafting.
+
+---
+
+## 🔗 Learn More
+
+* [Vercel AI SDK Documentation](https://sdk.vercel.ai/docs)
+* [Next.js Documentation](https://nextjs.org/docs)
+* [Vercel AI Playground](https://play.vercel.ai)
+
+---
+
+## 📥 Deploy Your Own
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fai-sdk-preview-attachments&env=OPENAI_API_KEY&envDescription=API%20keys%20needed%20for%20application&envLink=platform.openai.com)
 
-## How to use
+---
 
-Run [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app) with [npm](https://docs.npmjs.com/cli/init), [Yarn](https://yarnpkg.com/lang/en/docs/cli/create/), or [pnpm](https://pnpm.io) to bootstrap the example:
-
-```bash
-npx create-next-app --example https://github.com/vercel-labs/ai-sdk-preview-attachments ai-sdk-preview-attachments-example
-```
-
-```bash
-yarn create next-app --example https://github.com/vercel-labs/ai-sdk-preview-attachments ai-sdk-preview-attachments-example
-```
-
-```bash
-pnpm create next-app --example https://github.com/vercel-labs/ai-sdk-preview-attachments ai-sdk-preview-attachments-example
-```
-
-To run the example locally you need to:
-
-1. Sign up for accounts with the AI providers you want to use (e.g., OpenAI, Anthropic).
-2. Obtain API keys for each provider.
-3. Set the required environment variables as shown in the `.env.example` file, but in a new file called `.env`.
-4. `npm install` to install the required dependencies.
-5. `npm run dev` to launch the development server.
-
-
-## Learn More
-
-To learn more about Vercel AI SDK or Next.js take a look at the following resources:
-
-- [Vercel AI SDK docs](https://sdk.vercel.ai/docs)
-- [Vercel AI Playground](https://play.vercel.ai)
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-
+Feel free to explore and customize this legal chat example to fit your needs!
