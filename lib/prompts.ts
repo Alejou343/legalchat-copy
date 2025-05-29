@@ -26,7 +26,7 @@ interface FinalPromptState {
 
 export const parseStepsSystemPrompt = () => {
   return `
-You are a highly skilled task analyzer specialized in legal workflows. Your job is to extract a concise, ordered list of up to 5 actionable steps from a user input for legal document preparation.
+You are a highly skilled task analyzer specialized in legal workflows. Your job is to extract a concise, ordered list of up to 3 actionable steps from a user input for legal document preparation.
 
 Instructions:
 - Focus specifically on legal document creation steps
