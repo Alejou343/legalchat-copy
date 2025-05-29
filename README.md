@@ -1,5 +1,3 @@
-Claro, aquí tienes un README.md actualizado con la info que me diste, en formato claro y profesional, con secciones sobre los modos del chat legal, cómo correr el proyecto, y manteniendo la estructura inicial:
-
 ````markdown
 # ⚖️ Legal Chat with Vercel AI SDK - Multi-Mode Example
 
@@ -107,7 +105,4 @@ Supports step-by-step legal workflows, structured prompts, and pre-built convers
 
 Feel free to explore and customize this legal chat example to fit your needs!
 
-```
-
-Si quieres puedo ayudarte a agregar ejemplos específicos para cada modo o más detalles técnicos. ¿Quieres?
 ```
