@@ -22,19 +22,19 @@ This example demonstrates how to use the [Vercel AI SDK](https://sdk.vercel.ai/d
 1. **Clone the repository or create a Next.js app from the example:**
 
 ```bash
-npx create-next-app --example https://github.com/vercel-labs/ai-sdk-preview-attachments legal-chat-example
+npx create-next-app --example https://github.com/daanjiri/legalchat.git legal-chat
 `````
 
 Or using Yarn:
 
 ```bash
-yarn create next-app --example https://github.com/vercel-labs/ai-sdk-preview-attachments legal-chat-example
+yarn create next-app --example https://github.com/daanjiri/legalchat.git legal-chat
 ```
 
 Or using pnpm:
 
 ```bash
-pnpm create next-app --example https://github.com/vercel-labs/ai-sdk-preview-attachments legal-chat-example
+pnpm create next-app --example https://github.com/daanjiri/legalchat.git legal-chat
 ```
 
 2. **Sign up and obtain API keys** for the AI providers you want to use (e.g., [OpenAI](https://platform.openai.com), [Anthropic](https://www.anthropic.com)).
@@ -42,10 +42,16 @@ pnpm create next-app --example https://github.com/vercel-labs/ai-sdk-preview-att
 3. **Create a `.env` file** based on the `.env.example` and add your API keys and any required environment variables:
 
 ```env
-OPENAI_API_KEY=your_openai_api_key
-ANTHROPIC_API_KEY=your_anthropic_api_key
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+OPENAI_API_KEY=""
+GROQ_API_KEY=""
+DATABASE_URL=""
+GOOGLE_GENERATIVE_AI_API_KEY=""
+ANTHROPIC_API_KEY=""
+AWS_ACCESS_KEY_ID=""
+AWS_SECRET_ACCESS_KEY=""
+AWS_REGION=""
+NEXT_PUBLIC_SUPABASE_URL=""
+NEXT_PUBLIC_SUPABASE_ANON_KEY=""
 ```
 
 4. **Install dependencies:**
