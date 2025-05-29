@@ -1,4 +1,3 @@
-````markdown
 # ⚖️ Legal Chat with Vercel AI SDK - Multi-Mode Example
 
 This example demonstrates how to use the [Vercel AI SDK](https://sdk.vercel.ai/docs) with [Next.js](https://nextjs.org/) and the `useChat` hook to create a **legal chat interface** that supports **multi-modal messages** and three different modes of operation: **RAG**, **Default**, and **Workflow**.
@@ -24,7 +23,7 @@ This example demonstrates how to use the [Vercel AI SDK](https://sdk.vercel.ai/d
 
 ```bash
 npx create-next-app --example https://github.com/vercel-labs/ai-sdk-preview-attachments legal-chat-example
-````
+`````
 
 Or using Yarn:
 
@@ -104,5 +103,3 @@ Supports step-by-step legal workflows, structured prompts, and pre-built convers
 ---
 
 Feel free to explore and customize this legal chat example to fit your needs!
-
-```
