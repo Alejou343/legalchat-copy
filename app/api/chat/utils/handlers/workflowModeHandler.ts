@@ -34,7 +34,8 @@ import { bedrock } from "@ai-sdk/amazon-bedrock";
 
 export async function processWorkflowMode(
   messages: CoreMessage[],
-  hasFile: boolean
+  hasFile: boolean,
+  anonymization: boolean
 ) {
   logger.warn("⚠️ Starting workflow mode processing");
 
@@ -66,10 +67,10 @@ export async function processWorkflowMode(
         logger.info("✅ Initial workflow data written successfully");
 
         // Process intermediate steps
-        await processIntermediateSteps(state, dataStream, messages, hasFile);
+        await processIntermediateSteps(state, dataStream, messages, hasFile, anonymization);
 
         // Process final step
-        await processFinalStep(state, dataStream, messages, hasFile);
+        await processFinalStep(state, dataStream, messages, hasFile, anonymization);
       } catch (error) {
         logger.error(
           `❌ Error during workflow processing${hasFile ? " with file" : ""}`,
@@ -118,7 +119,8 @@ async function processIntermediateSteps(
   },
   dataStream: DataStreamWriter,
   messages: CoreMessage[],
-  hasFile: boolean
+  hasFile: boolean,
+  anonymization: boolean
 ) {
   for (let i = 0; i < state.steps.length - 1; i++) {
     const step = state.steps[i];
@@ -187,7 +189,7 @@ async function processIntermediateSteps(
                 },
               },
             },
-            system: chatSystemPrompt(),
+            system: chatSystemPrompt(anonymization),
             prompt: `
               LEGAL DOCUMENT SECTION DRAFTING:
               Draft only section ${i + 1} of ${
@@ -243,7 +245,8 @@ async function processFinalStep(
   },
   dataStream: DataStreamWriter,
   messages: CoreMessage[],
-  hasFile: boolean
+  hasFile: boolean,
+  anonymization: boolean
 ) {
   const lastStep = state.steps[state.steps.length - 1];
   state.currentStep = state.steps.length - 1;
@@ -264,7 +267,7 @@ async function processFinalStep(
             ...messages,
             {
               role: "user",
-              content: buildFinalLegalLetterPrompt(state, lastStep, hasFile),
+              content: buildFinalLegalLetterPrompt(state, lastStep, hasFile, anonymization),
             },
           ],
           onFinish: () => {
@@ -282,9 +285,9 @@ async function processFinalStep(
       async () =>
         streamText({
           model: bedrock(MODEL_CONSTANTS.ANTHROPIC.REASONING),
-          system: chatSystemPrompt(),
+          system: chatSystemPrompt(anonymization),
           temperature: 0,
-          prompt: buildFinalLegalLetterPrompt(state, lastStep, hasFile),
+          prompt: buildFinalLegalLetterPrompt(state, lastStep, hasFile, anonymization),
           onFinish: () => {
             dataStream.writeData({
               workflowSteps: state.steps,

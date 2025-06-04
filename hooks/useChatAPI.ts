@@ -5,6 +5,7 @@ import type { ChatMode } from "./useChatMode"; // Assuming ChatMode type is expo
 interface UseChatAPIProps {
     chatMode: ChatMode;
     hasFile: boolean;
+    anonimization: boolean;
     email: string;
     onSuccess?: (message: VercelMessage) => void;
     onError?: (error: Error) => void;
@@ -15,7 +16,7 @@ interface UseChatAPIProps {
  * @param props - Configuration for the chat API.
  * @returns The state and methods from useChat, plus derived loading states.
  */
-export function useChatAPI({ chatMode, hasFile, email, onSuccess, onError }: UseChatAPIProps) {
+export function useChatAPI({ chatMode, hasFile, email, onSuccess, onError, anonimization }: UseChatAPIProps) {
     const {
         messages,
         input,
@@ -32,7 +33,8 @@ export function useChatAPI({ chatMode, hasFile, email, onSuccess, onError }: Use
         body: {
             mode: chatMode,
             hasFile,
-            email
+            email,
+            anonimization
         },
         onError: (error) => {
             console.error("Chat API Error:", error);

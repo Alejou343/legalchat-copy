@@ -26,7 +26,8 @@ import { bedrock } from "@ai-sdk/amazon-bedrock";
 
 export async function processDefaultMode(
   messages: CoreMessage[],
-  hasFile: boolean
+  hasFile: boolean,
+  anonimization: boolean
 ) {
   try {
     logger.warn("⚠️ Starting default mode processing");
@@ -52,7 +53,7 @@ export async function processDefaultMode(
           streamText({
             model: bedrock(MODEL_CONSTANTS.ANTHROPIC.REASONING),
             // model: anthropic(MODEL_CONSTANTS.ANTHROPIC.DEFAULT),
-            system: chatSystemPrompt(),
+            system: chatSystemPrompt(anonimization),
             messages,
           }),
         "Default mode processing"

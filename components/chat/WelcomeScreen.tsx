@@ -1,9 +1,13 @@
 import type React from "react";
 import { cn } from "@/lib/utils"; // Assuming utility
 import type { LucideIcon } from "lucide-react"; // For icon prop types
+import { Switch } from "@/components/ui/switch"; // Assuming your Switch component path
+import { Label } from "@/components/ui/label"; // Assuming your Label component path for accessibility
 
 interface WelcomeScreenProps {
     chatMode: "default" | "workflow";
+    anonimization: boolean;
+    setAnonimization: (value: boolean) => void;
     icons: {
         Scale: LucideIcon;
         Wand2: LucideIcon;
@@ -13,7 +17,7 @@ interface WelcomeScreenProps {
 /**
  * Displays the welcome message based on the current chat mode.
  */
-export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ chatMode, icons }) => {
+export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ chatMode, icons, anonimization, setAnonimization }) => {
     const { Scale, Wand2 } = icons;
     return (
         <div className="relative h-full w-full">
@@ -35,6 +39,16 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ chatMode, icons })
                 <p className="text-muted-foreground">
                     Ask a question or switch to Workflow Mode for guided tasks.
                 </p>
+
+                {/* Anonimization Switch */}
+                <div className="flex items-center space-x-2 mt-6">
+                    <Switch
+                        id="anonimization-mode"
+                        checked={anonimization}
+                        onCheckedChange={setAnonimization}
+                    />
+                    <Label htmlFor="anonimization-mode">Anonimization Mode</Label>
+                </div>
             </div>
 
             {/* Workflow Mode Welcome */}
@@ -53,6 +67,16 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ chatMode, icons })
                     Describe the legal task you need assistance with. The AI will
                     guide you through the steps.
                 </p>
+
+                {/* Anonimization Switch for Workflow Mode (optional, you might want it in both) */}
+                <div className="flex items-center space-x-2 mt-6">
+                    <Switch
+                        id="anonimization-mode-workflow"
+                        checked={anonimization}
+                        onCheckedChange={setAnonimization}
+                    />
+                    <Label htmlFor="anonimization-mode-workflow">Anonimization Mode</Label>
+                </div>
             </div>
         </div>
     );

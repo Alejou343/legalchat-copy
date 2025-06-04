@@ -26,7 +26,7 @@ import { validateRequest, prepareFileMessage } from "./utils/requestUtils";
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, mode, hasFile, data, email } = await validateRequest(req);
+    const { messages, mode, hasFile, data, email, anonimization } = await validateRequest(req);
     const isDefault = mode === "default";
     const isWorkflow = mode === "workflow";
 
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       : messages;
 
     const handler = isDefault ? processDefaultMode : processWorkflowMode;
-    return await handler(processedMessages, hasFile);
+    return await handler(processedMessages, hasFile, anonimization);
   } catch (error) {
     logger.error("❌ Error procesando la solicitud", error);
     return Response.json(

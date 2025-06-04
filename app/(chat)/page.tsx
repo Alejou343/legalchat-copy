@@ -23,214 +23,220 @@ import { UploadSuccessNotification } from "@/components/chat/UploadSuccessNotifi
 import FileDisplay from "@/components/FileDisplay";
 
 export default function ChatPage() {
-	// --- Custom Hooks ---
-	const { chatMode, toggleChatMode, setChatMode } = useChatMode("default");
-	const [everHadFile, setEverHadFile] = useState(false);
-	const [hasFile, setHasFile] = useState(false);
+  // --- Custom Hooks ---
+  const { chatMode, toggleChatMode, setChatMode } = useChatMode("default");
+  const [everHadFile, setEverHadFile] = useState(false);
+  const [hasFile, setHasFile] = useState(false);
+  const [anonimization, setAnonimization] = useState(false);
 
-	const {
-		selectedFile,
-		setSelectedFile,
-		filePreview,
-		setFilePreview,
-		handleFileChange,
-		handleClearSelectedFile,
-		triggerFileInputClick,
-		fileInputRef,
-		uploadSuccess,
-		setUploadSuccess,
-	} = useFileUpload();
+  const {
+    selectedFile,
+    setSelectedFile,
+    filePreview,
+    setFilePreview,
+    handleFileChange,
+    handleClearSelectedFile,
+    triggerFileInputClick,
+    fileInputRef,
+    uploadSuccess,
+    setUploadSuccess,
+  } = useFileUpload();
 
+  useEffect(() => {
+    if (selectedFile && !everHadFile) {
+      setEverHadFile(true);
+    }
+    setHasFile(everHadFile || Boolean(selectedFile));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFile, everHadFile]);
 
-	useEffect(() => {
-		if (selectedFile && !everHadFile) {
-			setEverHadFile(true);
-		}
-		setHasFile(everHadFile || Boolean(selectedFile));
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [selectedFile, everHadFile]);
+  const chatAPI = useChatAPI({
+    // Encapsulates Vercel's useChat
+    chatMode,
+    hasFile,
+    anonimization,
+    email: "",
+    onSuccess: () => {
+      setSelectedFile(null); // Clear selected file after successful assistant response
+      setFilePreview(null); // Clear preview as well
+    },
+    onError: (error) => {
+      setSelectedFile(null); // Clear selected file on error
+      setFilePreview(null);
+    },
+  });
 
-	const chatAPI = useChatAPI({
-		// Encapsulates Vercel's useChat
-		chatMode,
-		hasFile,
-		email: '',
-		onSuccess: () => {
-			setSelectedFile(null); // Clear selected file after successful assistant response
-			setFilePreview(null); // Clear preview as well
-		},
-		onError: (error) => {
-			setSelectedFile(null); // Clear selected file on error
-			setFilePreview(null);
-		},
-	});
+  const {
+    displayMessages,
+    setDisplayMessages,
+    editingMessageId,
+    setEditingMessageId,
+    addOptimisticUserMessage,
+    updateOptimisticUserMessage,
+    syncMessagesFromAPI,
+  } = useMessageManager({
+    apiMessages: chatAPI.messages,
+    apiData: chatAPI.data,
+    chatMode: chatMode,
+  });
 
-	const {
-		displayMessages,
-		setDisplayMessages,
-		editingMessageId,
-		setEditingMessageId,
-		addOptimisticUserMessage,
-		updateOptimisticUserMessage,
-		syncMessagesFromAPI,
-	} = useMessageManager({
-		apiMessages: chatAPI.messages,
-		apiData: chatAPI.data,
-		chatMode: chatMode,
-	});
+  // Effect to sync API messages to displayMessages
+  useEffect(() => {
+    syncMessagesFromAPI(chatAPI.messages, chatAPI.data);
+  }, [chatAPI.messages, chatAPI.data, syncMessagesFromAPI]);
 
-	// Effect to sync API messages to displayMessages
-	useEffect(() => {
-		syncMessagesFromAPI(chatAPI.messages, chatAPI.data);
-	}, [chatAPI.messages, chatAPI.data, syncMessagesFromAPI]);
+  const textareaRef = useTextareaAutoResize(chatAPI.input, 40, 200);
+  const { scrollAreaRef, messagesEndRef } = useChatScroll(
+    displayMessages,
+    chatAPI.isLoading
+  );
 
-	const textareaRef = useTextareaAutoResize(chatAPI.input, 40, 200);
-	const { scrollAreaRef, messagesEndRef } = useChatScroll(
-		displayMessages,
-		chatAPI.isLoading,
-	);
+  const { handleFormSubmit, handleInitiateEdit } = useChatSubmit({
+    input: chatAPI.input,
+    setInput: chatAPI.setInput,
+    selectedFile,
+    setSelectedFile,
+    setFilePreview,
+    editingMessageId,
+    setEditingMessageId,
+    displayMessages,
+    addOptimisticUserMessage,
+    updateOptimisticUserMessage,
+    appendToApi: async (message, options) => {
+      // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
+      let result;
+      if (typeof message.content === "string") {
+        result = await chatAPI.append({
+          role: message.role,
+          content: message.content,
+        });
+      } else if (Array.isArray(message.content)) {
+        result = await chatAPI.append(
+          {
+            role: message.role,
+            content: message.content[0].text ?? "",
+            parts: [
+              { type: "text", text: message.content[0].text ?? "" },
+              {
+                type: "file",
+                mimeType: message.content[1].mimeType ?? "",
+                data: message.content[1].data ?? "",
+              },
+            ],
+          },
+          options
+        );
+      }
 
-	const { handleFormSubmit, handleInitiateEdit } = useChatSubmit({
-		input: chatAPI.input,
-		setInput: chatAPI.setInput,
-		selectedFile,
-		setSelectedFile,
-		setFilePreview,
-		editingMessageId,
-		setEditingMessageId,
-		displayMessages,
-		addOptimisticUserMessage,
-		updateOptimisticUserMessage,
-		appendToApi: async (message, options) => {
-			// biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
-			let result;
-			if (typeof message.content === "string") {
-				result = await chatAPI.append({
-					role: message.role,
-					content: message.content,
-				});
-			} else if (Array.isArray(message.content)) {
-				result = await chatAPI.append(
-					{
-						role: message.role,
-						content: message.content[0].text ?? "",
-						parts: [
-							{ type: "text", text: message.content[0].text ?? "" },
-							{
-								type: "file",
-								mimeType: message.content[1].mimeType ?? "",
-								data: message.content[1].data ?? "",
-							},
-						],
-					},
-					options,
-				);
-			}
+      return result === null ? undefined : result;
+    },
+    setApiMessages: chatAPI.setMessages, // For clearing context on edit
+    isLoading: chatAPI.isLoading,
+    setUploadSuccess, // To trigger success animation
+    // readFileAsDataURL, // Pass the utility
+  });
 
-			return result === null ? undefined : result;
-		},
-		setApiMessages: chatAPI.setMessages, // For clearing context on edit
-		isLoading: chatAPI.isLoading,
-		setUploadSuccess, // To trigger success animation
-		// readFileAsDataURL, // Pass the utility
-	});
+  // --- Event Handlers ---
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    chatAPI.handleInputChange(e); // Handles input state
+    // Textarea resize is handled by useTextareaAutoResize hook via chatAPI.input dependency
+  };
 
-	// --- Event Handlers ---
-	const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-		chatAPI.handleInputChange(e); // Handles input state
-		// Textarea resize is handled by useTextareaAutoResize hook via chatAPI.input dependency
-	};
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (!chatAPI.isLoading && (chatAPI.input.trim() || selectedFile)) {
+        // Create a synthetic event or directly call
+        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+        handleFormSubmit(e as any); // Cast if directly passing keyboard event
+      }
+    }
+  };
 
-	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-		if (e.key === "Enter" && !e.shiftKey) {
-			e.preventDefault();
-			if (!chatAPI.isLoading && (chatAPI.input.trim() || selectedFile)) {
-				// Create a synthetic event or directly call
-				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-				handleFormSubmit(e as any); // Cast if directly passing keyboard event
-			}
-		}
-	};
+  const cancelEdit = () => {
+    setEditingMessageId(null);
+    chatAPI.setInput("");
+    setSelectedFile(null);
+    setFilePreview(null);
+  };
 
-	const cancelEdit = () => {
-		setEditingMessageId(null);
-		chatAPI.setInput("");
-		setSelectedFile(null);
-		setFilePreview(null);
-	};
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  useEffect(() => {
+    const handleResetChat = () => {
+      handleClearSelectedFile();
+      chatAPI.setMessages([]);
+      chatAPI.setInput("");
+      setDisplayMessages([]);
+      setEditingMessageId(null);
+      setSelectedFile(null);
+      setFilePreview(null);
+      setHasFile(false);
+      setChatMode("default");
+    };
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
-	useEffect(() => {
-		const handleResetChat = () => {
-			handleClearSelectedFile();
-			chatAPI.setMessages([]);
-			chatAPI.setInput("");
-			setDisplayMessages([]);
-			setEditingMessageId(null);
-			setSelectedFile(null);
-			setFilePreview(null);
-			setHasFile(false);
-			setChatMode("default");
-		};
+    window.addEventListener("resetChat", handleResetChat);
+    return () => window.removeEventListener("resetChat", handleResetChat);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-		window.addEventListener("resetChat", handleResetChat);
-		return () => window.removeEventListener("resetChat", handleResetChat);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+  return (
+    <TooltipProvider delayDuration={100}>
+      <div className="flex flex-col justify-center items-center h-[calc(100vh-80px)] md:h-[calc(100vh-100px)] w-full">
+        <div className="flex flex-col justify-between w-full h-full bg-background">
+          {displayMessages.length === 0 && !chatAPI.isLoading ? (
+            <WelcomeScreen
+              chatMode={chatMode}
+              icons={{ Scale, Wand2 }}
+              anonimization={anonimization}
+              setAnonimization={setAnonimization}
+            />
+          ) : (
+            <MessageList
+              scrollAreaRef={scrollAreaRef}
+              messagesEndRef={messagesEndRef}
+              displayMessages={displayMessages}
+              isLoading={chatAPI.isLoading}
+              isLastUserMessage={
+                displayMessages[displayMessages.length - 1]?.role === "user"
+              }
+              chatMode={chatMode}
+              onEditMessage={handleInitiateEdit}
+              icons={{ Scale }} // Pass Scale icon for loader
+            />
+          )}
 
-	return (
-		<TooltipProvider delayDuration={100}>
-			<div className="flex flex-col justify-center items-center h-[calc(100vh-80px)] md:h-[calc(100vh-100px)] w-full">
-				<div className="flex flex-col justify-between w-full h-full bg-background">
-					{displayMessages.length === 0 && !chatAPI.isLoading ? (
-						<WelcomeScreen chatMode={chatMode} icons={{ Scale, Wand2 }} />
-					) : (
-						<MessageList
-							scrollAreaRef={scrollAreaRef}
-							messagesEndRef={messagesEndRef}
-							displayMessages={displayMessages}
-							isLoading={chatAPI.isLoading}
-							isLastUserMessage={
-								displayMessages[displayMessages.length - 1]?.role === "user"
-							}
-							chatMode={chatMode}
-							onEditMessage={handleInitiateEdit}
-							icons={{ Scale }} // Pass Scale icon for loader
-						/>
-					)}
+          {filePreview && ( // Use filePreview for the UI element
+            <FileDisplay
+              selectedFile={selectedFile}
+              handleClearFile={handleClearSelectedFile}
+            />
+          )}
 
-					{filePreview && ( // Use filePreview for the UI element
-						<FileDisplay
-							selectedFile={selectedFile}
-							handleClearFile={handleClearSelectedFile}
-						/>
-					)}
+          <UploadSuccessNotification
+            uploadSuccess={uploadSuccess}
+            icons={{ CheckCircle2 }}
+          />
 
-					<UploadSuccessNotification
-						uploadSuccess={uploadSuccess}
-						icons={{ CheckCircle2 }}
-					/>
-
-					<ChatInputForm
-						input={chatAPI.input}
-						textareaRef={textareaRef}
-						isSubmitting={chatAPI.status === "submitted"} // Or a more specific state from useChatSubmit if created
-						isLoading={chatAPI.isLoading}
-						editingMessageId={editingMessageId}
-						selectedFile={selectedFile}
-						chatMode={chatMode}
-						onInputChange={handleTextareaChange}
-						onFormSubmit={handleFormSubmit}
-						onKeyDown={handleKeyDown}
-						onUploadButtonClick={triggerFileInputClick}
-						onToggleChatMode={toggleChatMode}
-						onCancelEdit={cancelEdit}
-						fileInputRef={fileInputRef} // For connecting button to hidden input
-						onFileSelected={handleFileChange} // Pass the actual file change handler
-						icons={{ Upload, Wand2, Gavel }}
-					/>
-				</div>
-			</div>
-		</TooltipProvider>
-	);
+          <ChatInputForm
+            input={chatAPI.input}
+            textareaRef={textareaRef}
+            isSubmitting={chatAPI.status === "submitted"} // Or a more specific state from useChatSubmit if created
+            isLoading={chatAPI.isLoading}
+            editingMessageId={editingMessageId}
+            selectedFile={selectedFile}
+            chatMode={chatMode}
+            onInputChange={handleTextareaChange}
+            onFormSubmit={handleFormSubmit}
+            onKeyDown={handleKeyDown}
+            onUploadButtonClick={triggerFileInputClick}
+            onToggleChatMode={toggleChatMode}
+            onCancelEdit={cancelEdit}
+            fileInputRef={fileInputRef} // For connecting button to hidden input
+            onFileSelected={handleFileChange} // Pass the actual file change handler
+            icons={{ Upload, Wand2, Gavel }}
+          />
+        </div>
+      </div>
+    </TooltipProvider>
+  );
 }
