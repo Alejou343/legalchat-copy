@@ -1,7 +1,7 @@
 import { streamText } from "ai";
 import type { CoreMessage } from "ai";
 import logger from "@/lib/logger";
-import { chatSystemPrompt } from "@/lib/prompts";
+import { chatSystemPrompt, pseudonimizationSystemPrompt } from "@/lib/prompts";
 import { withRetry } from "../retryUtils";
 import { MODEL_CONSTANTS } from "../../constants/models";
 import { bedrock } from "@ai-sdk/amazon-bedrock";
@@ -43,6 +43,7 @@ export async function processDefaultMode(
             model: bedrock(MODEL_CONSTANTS.ANTHROPIC.REASONING),
             // model: anthropic(MODEL_CONSTANTS.ANTHROPIC.DEFAULT),
             messages,
+            system: anonimization ? pseudonimizationSystemPrompt() : ''
           }),
         "File processing with Anthropic"
       );
