@@ -36,12 +36,18 @@ export async function POST(req: NextRequest) {
     }
 
     const processedMessages = hasFile
+<<<<<<< HEAD
       // 🛠️ Paso mensajes aquí como primer argumento
       ? await handlePdfUpload(messages, data, email)
       : messages
 
     const handler = isDefault ? processDefaultMode : processWorkflowMode
     return await handler(processedMessages, hasFile, anonimization)
+=======
+		  ? await handlePdfUpload(data, email)
+      // ? await prepareFileMessage(messages, data) // Current RAG Architecture --> Above new
+      : messages;
+>>>>>>> 2a40a2b56264c29eb6fac0ac4d73011141a12913
 
   } catch (error) {
     logger.error("❌ Error procesando la solicitud", error)
