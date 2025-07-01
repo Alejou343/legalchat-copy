@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { processDefaultMode } from "./utils/handlers/defaultModeHandler";
 import { processWorkflowMode } from "./utils/handlers/workflowModeHandler";
 import { validateRequest, prepareFileMessage } from "./utils/requestUtils";
+import { handlePdfUpload } from "@/lib/handlers/pdf-upload-handler";
 
 /**
  * Handles POST requests for processing messages with optional file data.
@@ -39,8 +40,8 @@ export async function POST(req: NextRequest) {
     }
 
     const processedMessages = hasFile
-		//   ? await handlePdfUpload(data, email)
-      ? await prepareFileMessage(messages, data) // Current RAG Architecture --> Above new
+		  ? await handlePdfUpload(data, email)
+      // ? await prepareFileMessage(messages, data) // Current RAG Architecture --> Above new
       : messages;
 
     const handler = isDefault ? processDefaultMode : processWorkflowMode;
