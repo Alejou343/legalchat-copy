@@ -6,29 +6,23 @@ import { embeddings } from "../db/schema/embeddings";
 import logger from "../logger";
 import { bedrock } from "@ai-sdk/amazon-bedrock";
 import { MODEL_CONSTANTS } from "@/app/api/chat/constants/models";
+import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 
 /**
- * Splits the input text into chunks based on numbered headers like "1. Section Title".
- * Returns an array of non-empty trimmed chunks.
- * 
- * @param {string} input - The full text to be chunked.
- * @returns {string[]} An array of string chunks extracted from the input.
+ * Divide un texto largo en chunks compatibles con modelos de embeddings.
+ * Mantiene la firma de tu función actual.
  */
+export const generateChunks = async (input: string): Promise<string[]> => {
+  const splitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 5000,
+    chunkOverlap: 200,
+  });
 
-export const generateChunks = (input: string): string[] => {
-  // Divide por encabezados como "1. Background", "2. Migration Journey", etc.
-  const rawSections = input.split(/(?=\d+\.\s[A-Z][^\n]+)/g);
+  // Crea documentos divididos con metadata (ignoramos metadata aquí)
+  const documents = await splitter.createDocuments([input]);
 
-  const chunks: string[] = [];
-
-  for (let i = 0; i < rawSections.length; i++) {
-    const section = rawSections[i].trim();
-    if (section) {
-      chunks.push(section);
-    }
-  }
-
-  return chunks;
+  // Retorna solo el texto de cada chunk
+  return documents.map(doc => doc.pageContent);
 };
 
 /**
@@ -43,7 +37,7 @@ export const generateChunks = (input: string): string[] => {
 export const generateEmbeddings = async (
   value: string
 ): Promise<Array<{ embedding: number[]; content: string }>> => {
-  const chunks = generateChunks(value);
+  const chunks = await generateChunks(value);
   const { embeddings } = await embedMany({
     // model: openai.embedding(MODEL_CONSTANTS.OPENAI.EMBEDDING),
     model: bedrock.embedding(MODEL_CONSTANTS.ANTHROPIC.EMBEDDING),
