@@ -18,6 +18,7 @@ import {
 } from "@/lib/ai/embedding";
 import { rewriteUserQuery } from "@/lib/utils/reformulate-query";
 
+const isDev = process.env.NODE_ENV !== "production";
 /**
  * Main entry point for processing a legal letter in workflow mode.
  *
@@ -186,14 +187,14 @@ async function processIntermediateSteps(
         () =>
           generateText({
             model: bedrock(MODEL_CONSTANTS.ANTHROPIC.REASONING),
-            providerOptions: {
+            ...( isDev && { providerOptions: {
               bedrock: {
                 reasoningConfig: {
                   type: "enabled",
                   budgetTokens: 1024,
                 },
               },
-            },
+            }}),
             messages: [
               ...messages,
               {
@@ -228,14 +229,14 @@ async function processIntermediateSteps(
         () =>
           generateText({
             model: bedrock(MODEL_CONSTANTS.ANTHROPIC.REASONING),
-            providerOptions: {
+            ...( isDev && { providerOptions: {
               bedrock: {
                 reasoningConfig: {
                   type: "enabled",
                   budgetTokens: 1024,
                 },
               },
-            },
+            }}),
             system: chatSystemPrompt(anonymization),
             prompt: `
               LEGAL DOCUMENT SECTION DRAFTING:
