@@ -27,7 +27,7 @@ import { handlePdfUpload } from "@/lib/handlers/pdf-upload-handler";
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, mode, hasFile, data, email, anonimization } = await validateRequest(req)
+    const { messages, mode, hasFile, data, email, anonimization, resource_id } = await validateRequest(req)
     const isDefault = mode === "default"
     const isWorkflow = mode === "workflow"
 
@@ -35,16 +35,21 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Invalid mode specified" }, { status: 400 })
     }
 
-    const { messages: processedMessages, resource_id } = hasFile
-      ? await handlePdfUpload(messages, data, email)
-      : { messages, resource_id: undefined }
+    let processedMessages = messages
+    let currentResourceId = resource_id
+
+    if (hasFile && data.file) {
+      const result = await handlePdfUpload(messages, data, email)
+      processedMessages = result.messages
+      currentResourceId = result.resource_id ?? resource_id
+    }
 
     if (isWorkflow) {
       return await processWorkflowMode(
         processedMessages,
         hasFile,
         anonimization,
-        resource_id ?? undefined
+        currentResourceId ?? undefined
       )
     }
 

@@ -20,23 +20,32 @@ import type { CoreMessage, CoreUserMessage } from "ai";
  */
 
 export async function validateRequest(req: NextRequest) {
-	try {
-		const body = await req.json();
-		const messages = body.messages;
-		const mode = body.mode || "default";
-		const hasFile = body.hasFile || false;
-		const data = body.data || {};
-		const email = body.email || '';
-		const anonimization = body.anonimization || false;
+  try {
+    const body = await req.json();
+    const messages = body.messages;
+    const mode = body.mode || "default";
+    const hasFile = body.hasFile || false;
+    const data = body.data || {};
+    const email = body.email || "";
+    const anonimization = body.anonimization || false;
+    const resource_id = body.resource_id || data.resource_id;
 
-		logger.info(`Has a file: ${hasFile}`);
-		logger.info("✅ Messages, mode, data and hasFile received successfully");
+    logger.info(`Has a file: ${hasFile}`);
+    logger.info("✅ Messages, mode, data and hasFile received successfully");
 
-		return { messages, mode, hasFile, data, email, anonimization };
-	} catch (err) {
-		logger.error("❌ Cannot get messages, mode, data and hasFile", err);
-		throw new Error("Invalid JSON body");
-	}
+    return {
+      messages,
+      mode,
+      hasFile,
+      data,
+      email,
+      anonimization,
+      resource_id,
+    };
+  } catch (err) {
+    logger.error("❌ Cannot get messages, mode, data and hasFile", err);
+    throw new Error("Invalid JSON body");
+  }
 }
 
 /**
