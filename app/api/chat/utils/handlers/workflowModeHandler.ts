@@ -12,6 +12,11 @@ import { parseSteps } from "../workflowUtils";
 import { extractTextFromMessage } from "../requestUtils";
 import { MODEL_CONSTANTS } from "../../constants/models";
 import { bedrock } from "@ai-sdk/amazon-bedrock";
+import {
+  findRelevantContent,
+  getTopChunksByResourceId,
+} from "@/lib/ai/embedding";
+import { rewriteUserQuery } from "@/lib/utils/reformulate-query";
 
 /**
  * Main entry point for processing a legal letter in workflow mode.
@@ -35,16 +40,46 @@ import { bedrock } from "@ai-sdk/amazon-bedrock";
 export async function processWorkflowMode(
   messages: CoreMessage[],
   hasFile: boolean,
-  anonymization: boolean
+  anonymization: boolean,
+  resourceId?: string
 ) {
   logger.warn("⚠️ Starting workflow mode processing");
+
+  let augmentedMessages = messages;
+
+  if (hasFile && resourceId) {
+    try {
+      const lastMessage = messages[messages.length - 1];
+      const userInput = extractTextFromMessage(lastMessage);
+      const reformulated = await rewriteUserQuery(userInput);
+
+      let relevantChunks = await findRelevantContent(reformulated, resourceId);
+      if (relevantChunks.length === 0) {
+        const top = await getTopChunksByResourceId(resourceId, 4);
+        relevantChunks = top.map((c) => ({ name: c.name, similarity: 1 }));
+      }
+
+      if (relevantChunks.length > 0) {
+        const contextText = relevantChunks
+          .map((c) => `• ${c.name}`)
+          .join("\n");
+        const systemContext: CoreMessage = {
+          role: "system",
+          content: `Contexto extraído del documento:\n${contextText}`,
+        };
+        augmentedMessages = [systemContext, ...messages];
+      }
+    } catch (err) {
+      logger.error("❌ Error retrieving embeddings for workflow", err);
+    }
+  }
 
   return createDataStreamResponse({
     async execute(dataStream: DataStreamWriter) {
       try {
         // Parse steps
         logger.warn("⚠️ Trying to parse steps from messages");
-        const lastMessage = messages[messages.length - 1];
+        const lastMessage = augmentedMessages[augmentedMessages.length - 1];
         const inputText = extractTextFromMessage(lastMessage);
         const { steps } = await parseSteps(inputText);
         logger.info(`✅ Parsed ${steps.length} steps successfully`);
@@ -67,10 +102,22 @@ export async function processWorkflowMode(
         logger.info("✅ Initial workflow data written successfully");
 
         // Process intermediate steps
-        await processIntermediateSteps(state, dataStream, messages, hasFile, anonymization);
+        await processIntermediateSteps(
+          state,
+          dataStream,
+          augmentedMessages,
+          hasFile,
+          anonymization
+        );
 
         // Process final step
-        await processFinalStep(state, dataStream, messages, hasFile, anonymization);
+        await processFinalStep(
+          state,
+          dataStream,
+          augmentedMessages,
+          hasFile,
+          anonymization
+        );
       } catch (error) {
         logger.error(
           `❌ Error during workflow processing${hasFile ? " with file" : ""}`,

@@ -33,7 +33,7 @@ export async function handlePdfUpload(
     }
   },
   email: string
-): Promise<CoreMessage[]> {
+): Promise<{ messages: CoreMessage[]; resource_id: string | null }> {
   const { file } = data
 
   logger.warn('⚠️ Recibido archivo PDF desde JSON base64')
@@ -80,8 +80,8 @@ export async function handlePdfUpload(
     ]
   }
 
-  // 6️⃣ Devolver un nuevo array de mensajes
-  return [...messages, fileMessage]
+  // 6️⃣ Devolver un nuevo array de mensajes y el id del recurso
+  return { messages: [...messages, fileMessage], resource_id }
 }
 
 /**

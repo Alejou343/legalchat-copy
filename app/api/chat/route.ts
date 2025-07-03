@@ -35,13 +35,20 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Invalid mode specified" }, { status: 400 })
     }
 
-    const processedMessages = hasFile
-      // 🛠️ Paso mensajes aquí como primer argumento
+    const { messages: processedMessages, resource_id } = hasFile
       ? await handlePdfUpload(messages, data, email)
-      : messages
+      : { messages, resource_id: undefined }
 
-    const handler = isDefault ? processDefaultMode : processWorkflowMode
-    return await handler(processedMessages, hasFile, anonimization)
+    if (isWorkflow) {
+      return await processWorkflowMode(
+        processedMessages,
+        hasFile,
+        anonimization,
+        resource_id ?? undefined
+      )
+    }
+
+    return await processDefaultMode(processedMessages, hasFile, anonimization)
 
   } catch (error) {
     logger.error("❌ Error procesando la solicitud", error)
