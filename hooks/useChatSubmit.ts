@@ -1,8 +1,6 @@
-import { text } from 'drizzle-orm/pg-core';
 import { useCallback } from "react";
 import { toast } from "sonner";
 import type { DisplayMessage } from "./useMessageManager.ts"; // Assuming type
-import { readFileAsDataURL } from "@/lib/utils"; // Assuming utility
 
 interface UseChatSubmitProps {
     input: string;
@@ -24,7 +22,6 @@ interface UseChatSubmitProps {
     setApiMessages: (messages: any[]) => void; // Vercel's setMessages
     isLoading: boolean;
     setUploadSuccess: (success: boolean) => void;
-    // readFileAsDataURL: (file: File) => Promise<string | null>; // Pass utility
 }
 
 /**
@@ -46,7 +43,6 @@ export function useChatSubmit({
     setApiMessages,
     isLoading,
     setUploadSuccess,
-    // readFileAsDataURL,
 }: UseChatSubmitProps) {
 
     const handleFormSubmit = useCallback(async (e?: React.FormEvent<HTMLFormElement> | React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -63,33 +59,35 @@ export function useChatSubmit({
         setSelectedFile(null);
         setFilePreview(null);
 
-        let fileDataForApi: { file: { name: string; type: string; content: string } } | null = null;
+        let fileDataForApi: { fileUrl: string } | null = null;
         if (currentFile) {
             try {
-                const fileContent = await readFileAsDataURL(currentFile); // Use the passed utility
-                if (fileContent) {
-                    fileDataForApi = {
-                        file: {
-                            name: currentFile.name,
-                            type: currentFile.type,
-                            content: fileContent, // Sending as Data URL
-                        },
-                    };
-                    setUploadSuccess(true); // Trigger success animation for file processing
-                } else {
-                    toast.error("Could not read the selected file.");
-                    // Restore input if needed
-                    setInput(currentInput);
-                    setSelectedFile(currentFile);
-                    if(currentFile) setFilePreview({name: currentFile.name, type: currentFile.type});
-                    return;
-                }
+                const presignRes = await fetch("/api/upload", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name: currentFile.name, type: currentFile.type }),
+                });
+
+                if (!presignRes.ok) throw new Error("Failed to get upload URL");
+
+                const { uploadUrl, fileUrl } = await presignRes.json();
+
+                const uploadRes = await fetch(uploadUrl, {
+                    method: "PUT",
+                    headers: { "Content-Type": currentFile.type },
+                    body: currentFile,
+                });
+
+                if (!uploadRes.ok) throw new Error("Failed to upload to S3");
+
+                fileDataForApi = { fileUrl };
+                setUploadSuccess(true); // Trigger success animation for file processing
             } catch (error) {
-                console.error("Error reading file:", error);
-                toast.error("An error occurred while processing the file.");
+                console.error("Upload error:", error);
+                toast.error("Error uploading file");
                 setInput(currentInput);
                 setSelectedFile(currentFile);
-                if(currentFile) setFilePreview({name: currentFile.name, type: currentFile.type});
+                if (currentFile) setFilePreview({ name: currentFile.name, type: currentFile.type });
                 return;
             }
         }
@@ -99,18 +97,10 @@ export function useChatSubmit({
             await updateOptimisticUserMessage(editingMessageId, currentInput, currentFile);
             setApiMessages([]); // Clear API messages to resend context from the edited point
             try {
-                if(fileDataForApi) {
-                    await appendToApi(
-                        { role: "user", content: [{type: 'text', text: currentInput}, {type: 'file', data: fileDataForApi.file.content, mimeType: fileDataForApi.file.type }] },
-                        { data: fileDataForApi }
-                    );
-                }
-                else {
-                    await appendToApi(
-                        { role: "user", content: currentInput },
-                        { data: fileDataForApi }
-                    );
-                }
+                await appendToApi(
+                    { role: "user", content: currentInput },
+                    { data: fileDataForApi }
+                );
             } catch (apiError) {
                 console.error("Error sending edited message:", apiError);
                 toast.error("Failed to send edited message.");
@@ -121,18 +111,10 @@ export function useChatSubmit({
             // --- Handle New Message ---
             const optimisticMessage = await addOptimisticUserMessage(currentInput, currentFile);
             try {
-                if(fileDataForApi) {
-                    await appendToApi(
-                        { role: "user", content: [{type: 'text', text: currentInput}, {type: 'file', data: fileDataForApi.file.content, mimeType: fileDataForApi.file.type }] },
-                        { data: fileDataForApi }
-                    );
-                }
-                else {
-                    await appendToApi(
-                        { role: "user", content: currentInput },
-                        { data: fileDataForApi }
-                    );
-                }
+                await appendToApi(
+                    { role: "user", content: currentInput },
+                    { data: fileDataForApi }
+                );
             } catch (apiError) {
                 console.error("Error sending new message:", apiError);
                 toast.error("Failed to send message.");
@@ -144,7 +126,7 @@ export function useChatSubmit({
         isLoading, input, selectedFile, editingMessageId,
         setInput, setSelectedFile, setFilePreview, setEditingMessageId,
         updateOptimisticUserMessage, addOptimisticUserMessage,
-        setApiMessages, appendToApi, setUploadSuccess, /*readFileAsDataURL*/
+        setApiMessages, appendToApi, setUploadSuccess
     ]);
 
     const handleInitiateEdit = useCallback((messageId: string) => {

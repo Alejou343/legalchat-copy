@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     let processedMessages = messages
     let currentResourceId = resource_id
 
-    if (hasFile && data.file) {
+    if (hasFile && (data.file || data.fileUrl)) {
       const result = await handlePdfUpload(messages, data, email)
       processedMessages = result.messages
       currentResourceId = result.resource_id ?? resource_id
