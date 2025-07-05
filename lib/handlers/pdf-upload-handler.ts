@@ -26,31 +26,44 @@ import { CoreMessage, CoreUserMessage } from "ai";
 export async function handlePdfUpload(
   messages: CoreMessage[],
   data: {
-    file: {
+    file?: {
       name: string
       type: string
       content: string
     }
+    fileUrl?: string
   },
   email: string
 ): Promise<{ messages: CoreMessage[]; resource_id: string | null }> {
-  const { file } = data
+  const { file, fileUrl } = data
 
-  logger.warn('⚠️ Recibido archivo PDF desde JSON base64')
+  let buffer: Buffer
+  let fileName = file?.name
 
-  // 1️⃣ Validaciones
-  if (
-    !file ||
-    file.type !== 'application/pdf' ||
-    typeof file.content !== 'string'
-  ) {
-    logger.error('❌ Archivo PDF inválido o faltante')
-    throw new Error('Archivo PDF inválido o faltante')
+  if (fileUrl) {
+    logger.warn('⚠️ Recibido archivo PDF como URL')
+    buffer = await (await fetch(fileUrl)).arrayBuffer().then(buf => Buffer.from(buf))
+    if (!fileName) {
+      const parts = fileUrl.split('/')
+      fileName = parts[parts.length - 1]
+    }
+  } else {
+    logger.warn('⚠️ Recibido archivo PDF desde JSON base64')
+
+    if (
+      !file ||
+      file.type !== 'application/pdf' ||
+      typeof file.content !== 'string'
+    ) {
+      logger.error('❌ Archivo PDF inválido o faltante')
+      throw new Error('Archivo PDF inválido o faltante')
+    }
+
+    const base64Data = file.content.split(',')[1]
+    buffer = Buffer.from(base64Data, 'base64')
   }
 
-  // 2️⃣ Decodificar y limitar tamaño
-  const base64Data = file.content.split(',')[1]
-  const buffer = Buffer.from(base64Data, 'base64')
+  // 1️⃣ Limitar tamaño
   const MAX_SIZE = 20 * 1024 * 1024 // 20MB
   if (buffer.length > MAX_SIZE) {
     logger.error('❌ Archivo PDF excede tamaño permitido (20MB)')
@@ -75,7 +88,7 @@ export async function handlePdfUpload(
     content: [
       {
         type: 'text',
-        text: `He subido un PDF llamado **${file.name}** (longitud de texto: ${processedContent.length} caracteres).`
+        text: `He subido un PDF llamado **${fileName ?? 'documento'}** (longitud de texto: ${processedContent.length} caracteres).`
       }
     ]
   }
