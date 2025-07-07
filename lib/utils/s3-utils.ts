@@ -25,7 +25,8 @@ export async function generatePresignedUploadUrl(key: string, contentType: strin
 }
 
 export async function fetchFileBuffer(url: string): Promise<Buffer> {
-  const res = await fetch(url)
+  const signed = await aws.sign(url)
+  const res = await fetch(signed.url, signed)
   if (!res.ok) {
     throw new Error(`Failed to fetch file from S3: ${res.status} ${res.statusText}`)
   }
