@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generatePresignedUploadUrl, getObjectUrl } from '@/lib/utils/s3-utils'
+import { randomUUID } from 'crypto'
 
 export async function POST(req: NextRequest) {
   try {
@@ -7,7 +8,7 @@ export async function POST(req: NextRequest) {
     if (!name || !type) {
       return NextResponse.json({ error: 'Invalid file data' }, { status: 400 })
     }
-    const key = `${crypto.randomUUID()}-${name}`
+    const key = `${randomUUID()}-${name}`
     const uploadUrl = await generatePresignedUploadUrl(key, type)
     const fileUrl = getObjectUrl(key)
     return NextResponse.json({ uploadUrl, fileUrl })

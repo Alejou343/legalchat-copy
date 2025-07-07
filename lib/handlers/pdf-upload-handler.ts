@@ -1,6 +1,7 @@
 import { createResource } from "@/lib/actions/resources";
 import logger from "@/lib/logger";
 import { extractTextWithPdfParse } from "@/lib/utils/pdf-utils";
+import { fetchFileBuffer } from "@/lib/utils/s3-utils";
 import { CoreMessage, CoreUserMessage } from "ai";
 
 /**
@@ -42,7 +43,7 @@ export async function handlePdfUpload(
 
   if (fileUrl) {
     logger.warn('⚠️ Recibido archivo PDF como URL')
-    buffer = await (await fetch(fileUrl)).arrayBuffer().then(buf => Buffer.from(buf))
+    buffer = await fetchFileBuffer(fileUrl)
     if (!fileName) {
       const parts = fileUrl.split('/')
       fileName = parts[parts.length - 1]
