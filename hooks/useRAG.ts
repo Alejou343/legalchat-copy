@@ -62,18 +62,39 @@ export const useRAG = () => {
     if (!file) return;
 
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("chatMode", "rag"); // Especificamos que es un upload para RAG
 
     try {
-      const response = await fetch("/api/chat", {
-        // Mismo endpoint
+      const presignRes = await fetch("/api/upload", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: file.name, type: file.type }),
       });
 
-      if (!response.ok) throw new Error("Failed to upload PDF");
+      if (!presignRes.ok) throw new Error("Failed to get upload URL");
+
+      const { uploadUrl, fileUrl } = await presignRes.json();
+
+      const uploadRes = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!uploadRes.ok) throw new Error("Failed to upload to S3");
+
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [],
+          mode: "rag",
+          hasFile: true,
+          data: { fileUrl },
+          email: "",
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to process PDF");
 
       const data = await response.json();
       localStorage.setItem("currentUserId", data.resource_id);

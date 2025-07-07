@@ -106,10 +106,13 @@ export default function ChatPage() {
       // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
       let result;
       if (typeof message.content === "string") {
-        result = await chatAPI.append({
-          role: message.role,
-          content: message.content,
-        });
+        result = await chatAPI.append(
+          {
+            role: message.role,
+            content: message.content,
+          },
+          options
+        );
       } else if (Array.isArray(message.content)) {
         result = await chatAPI.append(
           {
