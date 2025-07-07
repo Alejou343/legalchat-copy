@@ -1,6 +1,6 @@
 import { AwsClient } from 'aws4fetch'
 
-const REGION = process.env.AWS_REGION || 'us-east-1'
+const REGION = 'us-east-1'
 const BUCKET = process.env.S3_BUCKET_NAME || ''
 
 const aws = new AwsClient({
